@@ -1,0 +1,49 @@
+# InstrukcjePrawne.pl — Proste instrukcje na trudne sprawy
+
+Interaktywny system instrukcji rozwiązywania problemów prawnych w Polsce. Każda instrukcja ma ten sam szablon:
+**A** sytuacja → **B** możliwe drogi (drzewo decyzji + mapa dróg) → **C** kroki → **D** dokumenty → **E** ostrzeżenia → **F** pomoc → źródła i stan prawny.
+
+## Uruchomienie
+
+```bash
+npm install
+cp .env.example .env.local   # opcjonalnie – działa też bez konfiguracji
+npm run dev                  # http://localhost:3000
+```
+
+Wymagany Node.js ≥ 22.13 (wbudowany `node:sqlite`, bez natywnych zależności).
+
+| Polecenie | Opis |
+|---|---|
+| `npm run build && npm start` | build produkcyjny |
+| `npm test` | testy jednostkowe (Vitest) |
+| `npm run test:e2e` | testy E2E + audyt dostępności axe (Playwright) |
+| `npm run check` | lint + typecheck + testy |
+| `npm run db:reset` | usuwa lokalną bazę – przy starcie wgrają się treści z `src/content` |
+
+Panel: `/admin`. Lokalnie bez `ADMIN_PASSWORD` hasło to `admin-lokalnie` (w produkcji panel bez hasła jest wyłączony).
+
+## Co jest w środku
+
+- **Next.js 16 (App Router), TypeScript, Tailwind 4**, SSG/ISR dla instrukcji i pytań.
+- **Silnik instrukcji i drzew decyzji** konfigurowany danymi (`src/lib/decision-engine.ts`, `src/content/instructions/*`): wiele wyników, „nie wiem” = wynik niepełny, cofanie, od nowa, link `?odp=`, drukowalne podsumowanie `/instrukcje/[slug]/wynik`.
+- **8 instrukcji**: długi osobiste, długi firmowe, IP BOX, ochrona marki, rozwód, koszty kredytu (SKD), zajęte konto, raty kredytu.
+- **Baza pytań**: 32 odpowiedzi + 107 pytań w kolejce redakcyjnej (szkice niepubliczne), import/eksport CSV, wideo (własne/Reels/TikTok/Shorts + transkrypcja).
+- **CMS** (`/admin`): edycja instrukcji (pola + JSON dla drzewa/źródeł), szkic → do zatwierdzenia → publikacja z datą i nazwiskiem recenzenta, podgląd, archiwum; pytania; zgłoszenia; partnerzy; ilustracje; analityka.
+- **Treści robocze i zatwierdzone są rozdzielone** (`draft_json` / `published_json`). Treści AI mają status „do zatwierdzenia”, oznaczenie na stronie i `noindex`; sitemap zawiera tylko treści zatwierdzone.
+- **PDF** (pdfkit): cała instrukcja lub sama checklista, duże numery stron i kroków, SVG, schemat decyzji, źródła, kod QR. Bez e-maila.
+- **Ilustracje**: 34 własne SVG; generator OpenAI (`src/lib/illustration-generator.ts`, `POST /v1/images/generations`) z cache, wersją promptu, zatwierdzaniem, regeneracją, uploadem ręcznym, odrzucaniem.
+- **Formularz eksperta**: walidacja, honeypot + limit czasu + rate limit, zapis w bazie, webhook do partnera z podpisem HMAC (adresy tylko z env), jawna informacja o podmiocie komercyjnym.
+- **Analityka** tylko po zgodzie, bez cookies i IP; główna metryka: odsetek sesji z instrukcją zakończonych konkretnym krokiem.
+- **SEO**: metadata, OG, canonical, sitemap, robots, breadcrumbs (JSON-LD), Article/QAPage.
+- **Dostępność**: testy axe WCAG 2.2 AA na kluczowych stronach, obsługa klawiatury, combobox ARIA, cele dotykowe ≥ 44 px.
+
+## Research prawny
+
+Research: 16.10.2026, wyszukiwarka z filtrem domen urzędowych (gov.pl, sejm.gov.pl, sądy, UPRP, EUIPO, UOKiK, RF, BGK). Bezpośrednie pobieranie stron było zablokowane w środowisku, więc część źródeł ma status „potwierdzone częściowo”. Rejestr: `src/content/sources.ts`; każda instrukcja ma listę `pendingVerification`. Projekty ustaw (UD260, rozwód w USC) są opisane wyłącznie jako niewiążące.
+
+**Przed startem:** prawnik weryfikuje i zatwierdza treści w panelu, `PUBLIC_SHOW_UNREVIEWED=false`, uzupełnienie danych operatora i polityki prywatności, konfiguracja webhooków partnerów, nazwa zespołu SKD.
+
+## Wdrożenie
+
+Aplikacja potrzebuje serwera Node z trwałym dyskiem dla `DATA_DIR` (SQLite + grafiki), np. VPS/Docker, Railway, Fly.io, Render z wolumenem. Platformy bez trwałego dysku (np. Vercel) wymagają zamiany bazy.
