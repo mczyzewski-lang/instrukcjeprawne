@@ -48,7 +48,12 @@ export function SituationQuestions({ questions, slug }: { questions: SituationQu
               </div>
             </div>
             <div aria-live="polite">
-              {a && <p className="mt-3 border-l-2 border-gold pl-3 text-sm">{a === "tak" ? q.ifYes : q.ifNo}</p>}
+              {a && (
+                <p className="mt-4 rounded-sm border-l-4 border-gold bg-gold-soft px-4 py-3 text-base leading-relaxed sm:text-lg">
+                  <span className="mb-0.5 block text-xs font-extrabold uppercase tracking-wider text-navy">Co to oznacza</span>
+                  <span className="font-semibold">{a === "tak" ? q.ifYes : q.ifNo}</span>
+                </p>
+              )}
             </div>
             <div className="print-only mt-2 text-sm">
               <p>Tak: {q.ifYes}</p>
