@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "IP_BUILD_DB=memory next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

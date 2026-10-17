@@ -100,12 +100,23 @@ export function dataDir() {
   return path.resolve(/*turbopackIgnore: true*/ process.env.DATA_DIR || path.join(process.cwd(), "data"));
 }
 
+/**
+ * Podczas `next build` kilka procesów równolegle prerenderuje strony. Każdy dostaje własną bazę
+ * w pamięci z treściami startowymi – bez blokad pliku i bez zależności od wolumenu (którego w buildzie nie ma).
+ * Prawdziwa baza powstaje przy starcie serwera, a ISR odświeża strony z jej danymi.
+ */
+function isBuildPhase() {
+  return process.env.NEXT_PHASE === "phase-production-build" || process.env.IP_BUILD_DB === "memory";
+}
+
 function open(): DatabaseSync {
-  const configured = process.env.DATABASE_PATH;
+  const configured = isBuildPhase() ? ":memory:" : process.env.DATABASE_PATH;
   const file = configured === ":memory:" ? ":memory:" : path.resolve(/*turbopackIgnore: true*/ configured || path.join(dataDir(), "app.db"));
   if (file !== ":memory:") mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
-  db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
+  // busy_timeout najpierw – kolejne polecenia czekają na blokadę zamiast od razu zgłaszać „database is locked”
+  db.exec("PRAGMA busy_timeout = 10000;");
+  db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA);
   seed(db);
   return db;
@@ -121,7 +132,7 @@ function seed(db: DatabaseSync) {
     "INSERT OR IGNORE INTO questions (id, slug, status, category, title, priority, draft_json, published_json, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)",
   );
   const insLead = db.prepare("INSERT OR IGNORE INTO lead_configs (topic, json) VALUES (?, ?)");
-  db.exec("BEGIN");
+  db.exec("BEGIN IMMEDIATE");
   try {
     for (const i of SEED_INSTRUCTIONS) insIns.run(i.id, i.slug, i.editorialStatus, i.category, JSON.stringify(i), now);
     for (const q of SEED_QUESTIONS) insQ.run(q.id, q.slug, q.status, q.category, q.title, q.priority ?? null, JSON.stringify(q), now);
