@@ -117,6 +117,16 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
 
   const onResult = useCallback((ids: string[]) => setHighlighted(ids), []);
 
+  // wybór instrukcji z przyklejonego paska (sekcje C i D)
+  useEffect(() => {
+    const onPick = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (ins.paths.some((p) => p.id === id)) selectPath(id, false);
+    };
+    window.addEventListener("ip:select-path", onPick);
+    return () => window.removeEventListener("ip:select-path", onPick);
+  }, [ins.paths, selectPath]);
+
   const toggleStep = (stepId: string) => {
     const next = done.includes(stepId) ? done.filter((s) => s !== stepId) : [...done, stepId];
     setDone(next);
@@ -216,7 +226,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
         <SectionHeading letter="C" id="sekcja-c" title="Instrukcja krok po kroku" lead="Wybierz drogę. Odhaczaj kroki – zapamiętamy postęp na tym urządzeniu." />
         <div className="no-print mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <label htmlFor="wybor-drogi" className="text-sm font-bold">
-            Droga:
+            Wybierz instrukcję:
           </label>
           <select id="wybor-drogi" className="field-input sm:max-w-md" value={path.id} onChange={(e) => selectPath(e.target.value, false)}>
             {ins.paths.map((p) => (
@@ -454,17 +464,14 @@ function PathMap({
   onSelect: (id: string) => void;
   sourceNumbers: Record<string, number>;
 }) {
-  return (
-    <div>
-      <div className="flex items-center gap-3">
-        <span className="inline-flex min-h-11 items-center rounded-sm bg-navy px-4 font-bold text-white">Wybierz instrukcję</span>
-        <span className="text-sm text-muted">→ {paths.length} {paths.length === 1 ? "możliwość" : "możliwości"}</span>
-      </div>
-      <ol className="relative mt-2 ml-5 border-l-2 border-navy pl-6">
-        {paths.map((p, idx) => {
-          const hl = highlighted.includes(p.id);
-          return (
-            <li key={p.id} className="relative pt-4">
+  const matched = highlighted.map((id) => paths.find((p) => p.id === id)).filter((p): p is Path => Boolean(p));
+  const others = paths.filter((p) => !highlighted.includes(p.id));
+  const filtered = matched.length > 0;
+  const renderCard = (p: Path) => {
+    const idx = paths.indexOf(p);
+    const hl = highlighted.includes(p.id);
+    return (
+      <li key={p.id} className="relative pt-4">
               <span aria-hidden="true" className="absolute -left-6 top-10 h-0.5 w-6 bg-navy" />
               <div className={`card p-4 sm:p-5 ${hl ? "border-2 border-gold" : ""} ${selected === p.id ? "ring-2 ring-navy ring-offset-2" : ""}`}>
                 <div className="flex gap-4">
@@ -504,10 +511,36 @@ function PathMap({
                   Instrukcja krok po kroku ({p.steps.length}) →
                 </button>
               </div>
-            </li>
-          );
-        })}
-      </ol>
+      </li>
+    );
+  };
+  return (
+    <div aria-live="polite">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-flex min-h-11 items-center rounded-sm bg-navy px-4 font-bold text-white">Wybierz instrukcję</span>
+        <span className="text-sm text-muted">
+          {filtered ? (
+            <>
+              <span className="font-bold text-navy">pasuje {matched.length}</span> z {paths.length} – według Twoich odpowiedzi
+            </>
+          ) : (
+            <>
+              → {paths.length} {paths.length === 1 ? "możliwość" : "możliwości"}
+              <span className="hidden lg:inline"> · odpowiedz na pytania po lewej, a zawęzimy listę</span>
+            </>
+          )}
+        </span>
+      </div>
+      <ol className="relative mt-2 ml-5 border-l-2 border-navy pl-6">{(filtered ? matched : paths).map(renderCard)}</ol>
+      {filtered && others.length > 0 && (
+        <details className="group mt-4">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-bold underline [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">Pokaż pozostałe instrukcje ({others.length})</span>
+            <span className="hidden group-open:inline">Ukryj pozostałe instrukcje</span>
+          </summary>
+          <ol className="relative mt-2 ml-5 border-l-2 border-line pl-6 opacity-80">{others.map(renderCard)}</ol>
+        </details>
+      )}
     </div>
   );
 }

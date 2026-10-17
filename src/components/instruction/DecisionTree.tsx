@@ -45,7 +45,7 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
       headingRef.current?.focus();
       focusNext.current = false;
     }
-    if (state.complete) onResult?.(state.outcomes.flatMap((o) => o.pathIds));
+    onResult?.(state.complete ? [...new Set(state.outcomes.flatMap((o) => o.pathIds))] : []);
     onAnswersChange?.(state.answers.map((a) => a.optionId));
   }, [state, onResult, onAnswersChange]);
 
@@ -102,8 +102,12 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
     <div id="drzewo" className="card overflow-hidden">
       <div className="border-b border-line px-5 py-4 sm:px-7">
         <p className="eyebrow">Nie wiesz, którą instrukcję wybrać?</p>
-        <p className="mt-1 text-lg font-extrabold">Odpowiedz na poniższe pytania</p>
-        <p className="mt-1 text-sm text-muted">{tree.intro}</p>
+        <p className="mt-1 text-lg font-extrabold">
+          Odpowiedz na {state.progress.total} {state.progress.total < 5 ? "pytania" : "pytań"} – zawęzimy listę instrukcji
+          <span className="hidden lg:inline"> obok</span>
+          <span className="lg:hidden"> poniżej</span>
+        </p>
+        <p className="mt-1 text-sm text-muted">Pasujące instrukcje zaznaczymy i przesuniemy na górę listy. To orientacja, nie ocena prawna.</p>
         <div className="mt-4 flex items-center gap-3" aria-hidden="true">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
             <div className="h-full bg-navy transition-[width]" style={{ width: `${state.complete ? 100 : pct}%` }} />
@@ -150,6 +154,10 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
             <h3 ref={headingRef} tabIndex={-1} className="text-xl font-extrabold outline-none sm:text-2xl">
               Drogi warte sprawdzenia w Twojej sytuacji
             </h3>
+            <p className="mt-2 rounded-sm bg-gold-soft px-3 py-2 text-sm font-semibold">
+              Lista instrukcji <span className="hidden lg:inline">obok</span>
+              <span className="lg:hidden">poniżej</span> jest zawężona do pasujących ({new Set(state.outcomes.flatMap((o) => o.pathIds)).size}).
+            </p>
             <p className="mt-2 text-sm text-muted">
               To orientacja na podstawie kilku odpowiedzi, a nie ocena prawna. Ostateczny wybór zależy od szczegółów Twojej sprawy i dokumentów.
             </p>

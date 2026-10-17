@@ -147,6 +147,17 @@ test("pytanie: krótka odpowiedź, działania, link do instrukcji, źródła", a
   expect(r?.status()).toBe(404);
 });
 
+test("drzewo decyzji zawęża listę instrukcji w sekcji B", async ({ page }) => {
+  await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  const b = page.locator('section[aria-labelledby="sekcja-b"]');
+  await expect(b.getByRole("heading", { name: /Wybierz instrukcję \(\d+ możliwości\)/ })).toBeVisible();
+  const tree = page.locator("#drzewo");
+  for (let i = 0; i < 8 && (await tree.locator("fieldset").count()) > 0; i++) await tree.locator("fieldset li button").first().click();
+  await expect(b.getByText(/pasuje \d+/)).toBeVisible();
+  await expect(b.getByText(/Pokaż pozostałe instrukcje \(\d+\)/)).toBeVisible();
+  await expect(tree.getByText(/jest zawężona do pasujących/)).toBeVisible();
+});
+
 test("SEO: treści robocze mają noindex, sitemap zawiera tylko zatwierdzone", async ({ page, request }) => {
   await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
@@ -221,6 +232,11 @@ test("przyklejony pasek pokazuje bieżącą sekcję i pozwala przejść do innej
   await page.mouse.wheel(0, 300);
   await expect(bar).toBeVisible();
   await expect(bar).toContainText("Instrukcja krok po kroku");
+  // wybór instrukcji w pasku zmienia instrukcję w sekcji C
+  const barSelect = bar.getByLabel("Wybierz instrukcję");
+  const second = await page.locator("#wybor-drogi option").nth(1).getAttribute("value");
+  await barSelect.selectOption(second!);
+  await expect(page.locator("#wybor-drogi")).toHaveValue(second!);
   await bar.getByRole("button", { name: "Sekcje" }).click();
   await bar.getByRole("link", { name: /Na co uważać/ }).click();
   await expect(bar).toContainText("Na co uważać?");

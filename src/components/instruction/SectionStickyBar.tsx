@@ -21,6 +21,8 @@ const BAR = 52;
 export function SectionStickyBar({ sections }: { sections: StickySection[] }) {
   const [active, setActive] = useState<number>(-1);
   const [pathName, setPathName] = useState("");
+  const [pathOptions, setPathOptions] = useState<{ value: string; label: string }[]>([]);
+  const [pathValue, setPathValue] = useState("");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +42,11 @@ export function SectionStickyBar({ sections }: { sections: StickySection[] }) {
       setActive(idx);
       const sel = document.getElementById("wybor-drogi") as HTMLSelectElement | null;
       setPathName(sel?.selectedOptions[0]?.text ?? "");
+      setPathValue(sel?.value ?? "");
+      setPathOptions((prev) => {
+        const next = sel ? Array.from(sel.options).map((o) => ({ value: o.value, label: o.text })) : [];
+        return prev.length === next.length && prev.every((o, i) => o.value === next[i].value) ? prev : next;
+      });
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -71,7 +78,7 @@ export function SectionStickyBar({ sections }: { sections: StickySection[] }) {
 
   const visible = active >= 0;
   const cur = sections[Math.max(active, 0)];
-  const showPath = visible && (cur.symbol === "C" || cur.symbol === "D") && pathName;
+  const showPath = visible && (cur.symbol === "C" || cur.symbol === "D") && pathName && pathOptions.length > 1;
 
   return (
     <div
@@ -82,11 +89,33 @@ export function SectionStickyBar({ sections }: { sections: StickySection[] }) {
         <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border-2 border-navy text-sm font-extrabold">
           {cur.symbol}
         </span>
-        <p className="min-w-0 flex-1 truncate font-bold" aria-live="polite">
+        <p className={`min-w-0 truncate font-bold ${showPath ? "hidden md:block md:max-w-[16rem] md:flex-none" : "flex-1"}`} aria-live="polite">
           <span className="sr-only">Jesteś w sekcji: </span>
           {cur.title}
-          {showPath && <span className="hidden font-normal text-muted sm:inline"> · {pathName}</span>}
         </p>
+        {showPath && (
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <label htmlFor="pasek-wybor-drogi" className="hidden shrink-0 text-sm font-semibold text-muted sm:block">
+              Wybierz instrukcję:
+            </label>
+            <select
+              id="pasek-wybor-drogi"
+              value={pathValue}
+              onChange={(e) => {
+                setPathValue(e.target.value);
+                setPathName(e.target.selectedOptions[0]?.text ?? "");
+                window.dispatchEvent(new CustomEvent("ip:select-path", { detail: e.target.value }));
+              }}
+              className="min-h-9 w-full min-w-0 truncate rounded-sm border-2 border-line bg-white px-2 text-sm font-semibold hover:border-navy"
+            >
+              {pathOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div ref={menuRef} className="relative shrink-0">
           <button
             type="button"
