@@ -4,6 +4,7 @@ import { ExpertByline, ExpertCard } from "@/components/instruction/Expert";
 import { InstructionExplorer } from "@/components/instruction/InstructionExplorer";
 import { SectionHeading } from "@/components/instruction/SectionHeading";
 import { FreeHelpList, SourcesSection, WarningsSection, formatDate } from "@/components/instruction/ServerSections";
+import { SectionStickyBar, type StickySection } from "@/components/instruction/SectionStickyBar";
 import { SituationQuestions } from "@/components/instruction/SituationQuestions";
 import { TrackedLink } from "@/components/instruction/TrackedLink";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -24,6 +25,16 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
   const v = { reviewed };
   const category = categoryBySlug(ins.category);
   const ex = expertFor(ins.category, ins.expertId);
+  const sticky: StickySection[] = [
+    { id: "sekcja-a", symbol: "A", title: "Zrozum swoją sytuację" },
+    { id: "sekcja-b", symbol: "B", title: "Poznaj możliwe drogi" },
+    { id: "sekcja-c", symbol: "C", title: "Instrukcja krok po kroku" },
+    { id: "sekcja-d", symbol: "D", title: "Co przygotować?" },
+    ...(ins.warnings.length ? [{ id: "sekcja-e", symbol: "E", title: "Na co uważać?" }] : []),
+    { id: "sekcja-f", symbol: "F", title: "Potrzebujesz pomocy?" },
+    ...(ex ? [{ id: "ekspert-h", symbol: "i", title: "Kto odpowiada za tę instrukcję" }] : []),
+    { id: "zrodla-h", symbol: "§", title: "Źródła i stan prawny" },
+  ];
   const sourceNumbers = Object.fromEntries(ins.sourceReferences.map((s, i) => [s.id, i + 1]));
   const approved = Object.fromEntries(approvedIllustrations(`step:${ins.id}:`));
   const leadCfg = ins.leadTopic ? getLeadConfig(ins.leadTopic) : null;
@@ -108,6 +119,8 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
           </ul>
         </aside>
       )}
+
+      <SectionStickyBar sections={sticky} />
 
       <nav aria-label="Sekcje instrukcji" className="no-print -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-2 text-sm font-semibold">
         {[

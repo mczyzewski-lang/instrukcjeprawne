@@ -166,3 +166,16 @@ test("ekspert nadzorujący i strona Informacje", async ({ page }) => {
   await expect(page.getByText("Tu pojawi się film od założycieli")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Główna nawigacja" }).getByRole("link", { name: "Informacje" })).toBeVisible();
 });
+
+test("przyklejony pasek pokazuje bieżącą sekcję i pozwala przejść do innej", async ({ page }) => {
+  await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  const bar = page.getByRole("navigation", { name: "Bieżąca sekcja instrukcji" });
+  await expect(bar).toBeHidden();
+  await page.locator("#kroki").scrollIntoViewIfNeeded();
+  await page.mouse.wheel(0, 300);
+  await expect(bar).toBeVisible();
+  await expect(bar).toContainText("Instrukcja krok po kroku");
+  await bar.getByRole("button", { name: "Sekcje" }).click();
+  await bar.getByRole("link", { name: /Na co uważać/ }).click();
+  await expect(bar).toContainText("Na co uważać?");
+});

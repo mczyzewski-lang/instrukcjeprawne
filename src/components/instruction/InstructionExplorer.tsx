@@ -130,7 +130,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
       <section aria-labelledby="sekcja-b" className="border-t border-line py-12 sm:py-16">
         <SectionHeading letter="B" id="sekcja-b" title="Poznaj możliwe drogi" lead="Odpowiedz na kilka pytań albo od razu przejrzyj wszystkie drogi. Każda ma swoje warunki, koszty i ryzyko." />
         <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="lg:sticky lg:top-32 lg:self-start">
             <DecisionTree
               tree={ins.decisionTree}
               instructionSlug={ins.slug}
