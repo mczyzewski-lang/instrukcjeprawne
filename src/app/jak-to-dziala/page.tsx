@@ -24,7 +24,7 @@ const PRINCIPLES = [
 
 const SECTIONS = [
   ["A", "Zrozum swoją sytuację", "Kilka prostych pytań, które pomagają się zorientować."],
-  ["B", "Poznaj możliwe drogi", "Mapa rozwiązań z warunkami, kosztami i ryzykiem – także bezpłatnych."],
+  ["B", "Wybierz instrukcję", "Kilka możliwych dróg z warunkami, kosztami i ryzykiem – także bezpłatnych. Nie wiesz, którą wybrać? Pomogą pytania."],
   ["C", "Instrukcja krok po kroku", "Konkretne czynności z ilustracjami. Postęp zapamiętujemy na Twoim urządzeniu."],
   ["D", "Co przygotować?", "Lista dokumentów do odhaczania i zapisania jako PDF."],
   ["E", "Na co uważać?", "Najczęstsze błędy, których trudno później uniknąć."],

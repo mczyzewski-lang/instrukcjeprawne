@@ -9,6 +9,7 @@ import { PATH_KIND_LABEL, type Instruction, type Path } from "@/lib/types";
 import { DecisionTree } from "./DecisionTree";
 import { buildPlan, encodePlan, planFileTitle, planPdfHref, planTitle, type PlanInput } from "@/lib/plan";
 import { ExpertChat, type ChatAttachment, type ChatExpert } from "./ExpertChat";
+import { PlanCtaButton } from "./PlanCtaButton";
 import { PlanModal } from "./PlanModal";
 import { PlanPanel } from "./PlanPanel";
 import { PlanWizard, type PlanConfig } from "./PlanWizard";
@@ -192,7 +193,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     <>
       {/* B — drogi */}
       <section aria-labelledby="sekcja-b" className="border-t border-line py-12 sm:py-16">
-        <SectionHeading letter="B" id="sekcja-b" title="Poznaj możliwe drogi" lead="Nie wiesz, którą instrukcję wybrać? Odpowiedz na kilka pytań poniżej – podpowiemy, która droga pasuje do Twojej sytuacji. Możesz też od razu przejrzeć wszystkie drogi." />
+        <SectionHeading letter="B" id="sekcja-b" title={`Wybierz instrukcję (${ins.paths.length} ${ins.paths.length === 1 ? "możliwość" : "możliwości"})`} lead="Każda instrukcja to inna droga – z własnymi warunkami, kosztami i ryzykiem. Nie wiesz, którą wybrać? Odpowiedz na kilka pytań – podpowiemy." />
         <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <div className="lg:sticky lg:top-32 lg:self-start">
             <DecisionTree
@@ -363,9 +364,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
                 Pobierzesz go jako PDF, bez rejestracji i bez e-maila.
               </p>
             </div>
-            <button type="button" className="btn btn-primary shrink-0" onClick={() => generatePlan("section")}>
-              {planLabel}
-            </button>
+            <PlanCtaButton label={planLabel} onClick={() => generatePlan("section")} className="shrink-0" />
           </div>
         )}
       </section>
@@ -402,7 +401,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
         )}
       </PlanModal>
 
-      <MobilePlanBar eyebrow={plan ? `Twój plan · ${plan.doneCount} z ${plan.total} zrobione` : "Wygeneruj bezpłatnie"} title={planTitle(ins)} onClick={() => (plan ? setModal("plan") : generatePlan("mobile-bar"))} />
+      <MobilePlanBar title={plan ? `Twój ${planTitle(ins)}` : planLabel} hint={plan ? `${plan.doneCount} z ${plan.total} zrobione` : "Bez podawania danych kontaktowych"} onClick={() => (plan ? setModal("plan") : generatePlan("mobile-bar"))} />
 
       {/* E — ostrzeżenia (treść z serwera) */}
       {warningsSlot}
@@ -458,8 +457,8 @@ function PathMap({
   return (
     <div>
       <div className="flex items-center gap-3">
-        <span className="inline-flex min-h-11 items-center rounded-sm bg-navy px-4 font-bold text-white">Twoja sytuacja</span>
-        <span className="text-sm text-muted">→ możliwe drogi ({paths.length})</span>
+        <span className="inline-flex min-h-11 items-center rounded-sm bg-navy px-4 font-bold text-white">Wybierz instrukcję</span>
+        <span className="text-sm text-muted">→ {paths.length} {paths.length === 1 ? "możliwość" : "możliwości"}</span>
       </div>
       <ol className="relative mt-2 ml-5 border-l-2 border-navy pl-6">
         {paths.map((p, idx) => {

@@ -27,7 +27,7 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
   const ex = expertFor(ins.category, ins.expertId);
   const sticky: StickySection[] = [
     { id: "sekcja-a", symbol: "A", title: "Zrozum swoją sytuację" },
-    { id: "sekcja-b", symbol: "B", title: "Poznaj możliwe drogi" },
+    { id: "sekcja-b", symbol: "B", title: "Wybierz instrukcję" },
     { id: "sekcja-c", symbol: "C", title: "Instrukcja krok po kroku" },
     { id: "sekcja-d", symbol: "D", title: "Co przygotować?" },
     ...(ins.warnings.length ? [{ id: "sekcja-e", symbol: "E", title: "Na co uważać?" }] : []),

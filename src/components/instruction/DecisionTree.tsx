@@ -3,6 +3,7 @@
 import { ArrowLeft, Link2, Printer, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { track } from "@/lib/analytics-client";
+import { PlanCtaButton } from "./PlanCtaButton";
 import { decodeAnswers, encodeAnswers, resolve } from "@/lib/decision-engine";
 import type { DecisionTree as Tree } from "@/lib/types";
 
@@ -187,9 +188,7 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
               <div className="mt-5 rounded-md border-2 border-navy bg-white p-4">
                 <p className="font-extrabold">Zbierz to w jeden plan</p>
                 <p className="mt-1 text-sm text-muted">Twoje odpowiedzi, wybrana droga, kroki i dokumenty – jako lista do odhaczania i PDF. Bez rejestracji.</p>
-                <button type="button" className="btn btn-primary mt-3 w-full sm:w-auto" onClick={planCta.onClick}>
-                  {planCta.label}
-                </button>
+                <PlanCtaButton label={planCta.label} onClick={planCta.onClick} className="mt-3 w-full sm:w-auto" />
               </div>
             )}
           </div>

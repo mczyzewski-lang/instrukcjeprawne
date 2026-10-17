@@ -9,7 +9,7 @@ import { getConsent } from "@/lib/analytics-client";
  * Pojawia się dopiero po przewinięciu poniżej nagłówka instrukcji (hero)
  * i chowa się, gdy na ekranie jest już sam plan, sekcja pomocy z czatem albo pasek zgody.
  */
-export function MobilePlanBar({ eyebrow, title, onClick }: { eyebrow: string; title: string; onClick: () => void }) {
+export function MobilePlanBar({ title, hint, onClick }: { title: string; hint: string; onClick: () => void }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -45,11 +45,11 @@ export function MobilePlanBar({ eyebrow, title, onClick }: { eyebrow: string; ti
       aria-hidden={!visible}
       data-plan-bar=""
     >
-      <button type="button" onClick={onClick} tabIndex={visible ? 0 : -1} className="btn btn-primary w-full justify-start gap-3 px-4 py-2.5">
+      <button type="button" onClick={onClick} tabIndex={visible ? 0 : -1} className="btn btn-primary btn-glare w-full justify-start gap-3 px-4 py-2.5">
         <ListChecks className="h-6 w-6 shrink-0" aria-hidden="true" />
         <span className="grid min-w-0 text-left">
-          <span className="text-xs font-semibold text-white/75">{eyebrow}</span>
           <span className="line-clamp-2 leading-snug">{title}</span>
+          <span className="text-xs font-semibold text-white/75">{hint}</span>
         </span>
       </button>
     </div>

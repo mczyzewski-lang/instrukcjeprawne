@@ -212,7 +212,7 @@ export async function instructionPdf(ins: Instruction, opts: { url: string; revi
   });
 
   // B – schemat decyzji i drogi
-  sectionTitle(doc, "B", "Poznaj możliwe drogi", "Schemat pytań i możliwe drogi. Wynik to orientacja, nie ocena prawna.");
+  sectionTitle(doc, "B", "Wybierz instrukcję", "Schemat pytań i możliwe drogi. Wynik to orientacja, nie ocena prawna.");
   const outcomeTitle = new Map(ins.decisionTree.outcomes.map((o) => [o.id, o.title]));
   const nodeIndex = new Map(ins.decisionTree.nodes.map((n, i) => [n.id, i + 1]));
   for (const n of ins.decisionTree.nodes) {
