@@ -9,6 +9,7 @@ import { ochronaMarki } from "./instructions/ochrona-marki";
 import { ratyKredytu } from "./instructions/raty-kredytu";
 import { rozwod } from "./instructions/rozwod";
 import { ANSWERED_QUESTIONS } from "./questions";
+import { MORE_QUESTIONS } from "./questions-more";
 
 /** Treści startowe – wgrywane do bazy przy pierwszym uruchomieniu. */
 export const SEED_INSTRUCTIONS: Instruction[] = [
@@ -34,4 +35,8 @@ export const FEATURED_SLUGS = [
   "co-zrobic-gdy-nie-mozesz-splacac-rat-kredytu",
 ];
 
-export const SEED_QUESTIONS: Question[] = [...ANSWERED_QUESTIONS, ...BACKLOG_QUESTIONS];
+const ANSWERED = [...ANSWERED_QUESTIONS, ...MORE_QUESTIONS];
+const answeredSlugs = new Set(ANSWERED.map((q) => q.slug));
+
+/** Odpowiedzi + kolejka redakcyjna (bez pytań, na które już odpowiedzieliśmy). */
+export const SEED_QUESTIONS: Question[] = [...ANSWERED, ...BACKLOG_QUESTIONS.filter((q) => !answeredSlugs.has(q.slug))];

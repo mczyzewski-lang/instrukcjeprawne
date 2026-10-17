@@ -212,6 +212,42 @@ export interface Instruction {
   relatedInstructions: string[];
   /** klucz konfiguracji leadów (LeadConfiguration.topic) lub null, gdy brak współpracującego podmiotu */
   leadTopic: string | null;
+  /** ekspert nadzorujący merytorycznie (Expert.id); brak = przypisanie według kategorii */
+  expertId?: string | null;
+}
+
+/* ---------- Eksperci ---------- */
+
+/**
+ * Osoba nadzorująca merytorycznie dział tematyczny. Pokazywana dyskretnie w instrukcji
+ * (nie w hero, bez przycisków sprzedażowych), żeby czytelnik wiedział, kto odpowiada za treść.
+ */
+export interface Expert {
+  id: string;
+  /** imię i nazwisko */
+  name: string;
+  /** tytuł zawodowy, np. „radca prawny”, „doradca restrukturyzacyjny” */
+  title: string;
+  /** rola w serwisie, np. „Nadzór merytoryczny: długi i upadłość” */
+  role: string;
+  /** krótki opis doświadczenia (2–3 zdania) */
+  bio: string;
+  /** kategorie, które nadzoruje */
+  categories: CategorySlug[];
+  /** ujawnienie powiązań, np. „Współpracuje z Pravna (podmiot komercyjny)” */
+  affiliation?: string;
+  /** nazwa pliku zdjęcia w magazynie (ustawiana przez panel) */
+  photoFile?: string | null;
+  /** published = dane prawdziwe i zatwierdzone; draft = do uzupełnienia */
+  status: "draft" | "published";
+}
+
+export interface FoundersVideo {
+  title: string;
+  /** URL pliku wideo (mp4) albo strony z filmem */
+  url: string;
+  poster?: string;
+  transcript?: string;
 }
 
 /* ---------- Pytania ---------- */

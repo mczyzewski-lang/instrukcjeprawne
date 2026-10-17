@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { LEAD_CONFIGURATIONS } from "@/content/categories";
+import { SEED_EXPERTS } from "@/content/experts";
 import { SEED_INSTRUCTIONS, SEED_QUESTIONS } from "@/content";
 
 /**
@@ -85,6 +86,16 @@ CREATE TABLE IF NOT EXISTS illustrations (
   error TEXT
 );
 CREATE INDEX IF NOT EXISTS illustrations_target ON illustrations(target_key);
+CREATE TABLE IF NOT EXISTS experts (
+  id TEXT PRIMARY KEY,
+  json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  json TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   window_start INTEGER NOT NULL,
@@ -132,11 +143,19 @@ function seed(db: DatabaseSync) {
     "INSERT OR IGNORE INTO questions (id, slug, status, category, title, priority, draft_json, published_json, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)",
   );
   const insLead = db.prepare("INSERT OR IGNORE INTO lead_configs (topic, json) VALUES (?, ?)");
+  const insExpert = db.prepare("INSERT OR IGNORE INTO experts (id, json, updated_at) VALUES (?, ?, ?)");
+  // pytanie z kolejki (pusty szkic, nigdy nieedytowany), na które dodano odpowiedź w treściach startowych → aktualizacja
+  const upgradeQ = db.prepare(
+    `UPDATE questions SET status = ?, title = ?, draft_json = ?, updated_at = ?
+     WHERE id = ? AND status = 'draft' AND published_json IS NULL AND json_extract(draft_json, '$.answer') = ''`,
+  );
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const i of SEED_INSTRUCTIONS) insIns.run(i.id, i.slug, i.editorialStatus, i.category, JSON.stringify(i), now);
     for (const q of SEED_QUESTIONS) insQ.run(q.id, q.slug, q.status, q.category, q.title, q.priority ?? null, JSON.stringify(q), now);
+    for (const q of SEED_QUESTIONS) if (q.status !== "draft") upgradeQ.run(q.status, q.title, JSON.stringify(q), now, q.id);
     for (const l of LEAD_CONFIGURATIONS) insLead.run(l.topic, JSON.stringify(l));
+    for (const e of SEED_EXPERTS) insExpert.run(e.id, JSON.stringify(e), now);
     db.exec("COMMIT");
   } catch (e) {
     db.exec("ROLLBACK");

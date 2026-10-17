@@ -21,7 +21,7 @@ type QInput = {
   editorialNote?: string;
 };
 
-const q = (i: QInput): Question => ({
+export const q = (i: QInput): Question => ({
   id: `q-${i.slug}`,
   slug: i.slug,
   title: i.title,

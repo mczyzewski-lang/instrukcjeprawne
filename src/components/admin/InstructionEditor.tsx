@@ -94,7 +94,19 @@ function JsonField<T>({ label, value, onChange, rows = 12 }: { label: string; va
 
 const TABS = ["Podstawowe", "A · Pytania", "B–D · Drogi i kroki", "E · Ostrzeżenia", "Zaawansowane"] as const;
 
-export function InstructionEditor({ initial, status, hasPublished, leadTopics }: { initial: Instruction; status: string; hasPublished: boolean; leadTopics: string[] }) {
+export function InstructionEditor({
+  initial,
+  status,
+  hasPublished,
+  leadTopics,
+  experts = [],
+}: {
+  initial: Instruction;
+  status: string;
+  hasPublished: boolean;
+  leadTopics: string[];
+  experts?: { id: string; name: string }[];
+}) {
   const [doc, setDoc] = useState<Instruction>(initial);
   const [tab, setTab] = useState<(typeof TABS)[number]>("Podstawowe");
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -216,6 +228,16 @@ export function InstructionEditor({ initial, status, hasPublished, leadTopics }:
               {leadTopics.map((t) => (
                 <option key={t} value={t}>
                   {t}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Ekspert nadzorujący" hint="Puste = ekspert przypisany do kategorii">
+            <select className="field-input" value={doc.expertId ?? ""} onChange={(e) => patch({ expertId: e.target.value || null })}>
+              <option value="">— według kategorii —</option>
+              {experts.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
                 </option>
               ))}
             </select>

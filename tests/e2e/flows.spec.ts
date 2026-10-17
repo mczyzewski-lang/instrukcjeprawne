@@ -110,7 +110,7 @@ test("pytanie: krótka odpowiedź, działania, link do instrukcji, źródła", a
   await expect(page.getByText("Zobacz całą instrukcję")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Źródła i stan prawny" })).toBeVisible();
   // szkice z kolejki redakcyjnej nie są publiczne
-  const r = await page.goto("/pytania/jak-odrzucic-spadek-z-dlugami");
+  const r = await page.goto("/pytania/ile-trwa-rozwod-bez-orzekania-o-winie");
   expect(r?.status()).toBe(404);
 });
 
@@ -153,4 +153,16 @@ test("panel: logowanie, publikacja instrukcji i import CSV", async ({ page }) =>
 
   await page.goto("/admin/leady");
   await expect(page.getByText("Ewa")).toBeVisible();
+});
+
+test("ekspert nadzorujący i strona Informacje", async ({ page }) => {
+  await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  await expect(page.getByText("Merytorycznie nadzoruje:")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kto odpowiada za tę instrukcję" })).toBeVisible();
+  // ekspert nie pojawia się w nagłówku (hero) instrukcji
+  await expect(page.locator("article > header").getByText("Merytorycznie nadzoruje")).toHaveCount(0);
+  await page.goto("/informacje");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Trudna sprawa");
+  await expect(page.getByText("Tu pojawi się film od założycieli")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Główna nawigacja" }).getByRole("link", { name: "Informacje" })).toBeVisible();
 });

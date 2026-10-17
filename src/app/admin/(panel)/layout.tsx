@@ -11,9 +11,11 @@ const NAV = [
   ["/admin/instrukcje", "Instrukcje"],
   ["/admin/pytania", "Pytania"],
   ["/admin/ilustracje", "Ilustracje"],
+  ["/admin/eksperci", "Eksperci"],
   ["/admin/leady", "Zgłoszenia"],
   ["/admin/partnerzy", "Partnerzy"],
   ["/admin/analityka", "Analityka"],
+  ["/admin/ustawienia", "Ustawienia"],
 ];
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {

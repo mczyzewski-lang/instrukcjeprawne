@@ -37,6 +37,7 @@ export function SiteFooter() {
             <li><Link href="/instrukcje" className="hover:underline">Wszystkie instrukcje</Link></li>
             <li><Link href="/pytania" className="hover:underline">Najczęstsze pytania</Link></li>
             <li><Link href="/jak-to-dziala" className="hover:underline">Jak to działa?</Link></li>
+            <li><Link href="/informacje" className="hover:underline">Informacje o serwisie</Link></li>
             <li><Link href="/jak-to-dziala#zrodla" className="hover:underline">Źródła i weryfikacja treści</Link></li>
             <li><Link href="/polityka-prywatnosci" className="hover:underline">Polityka prywatności</Link></li>
             <li><ConsentSettingsButton /></li>

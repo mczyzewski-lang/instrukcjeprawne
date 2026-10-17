@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { InstructionEditor } from "@/components/admin/InstructionEditor";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { getInstructionForEdit } from "@/lib/repo/content";
+import { listExperts } from "@/lib/repo/experts";
 import { listLeadConfigs } from "@/lib/repo/leads";
 
 export const metadata = { title: "Edycja instrukcji" };
@@ -20,7 +21,7 @@ export default async function EditInstruction({ params }: { params: Promise<{ id
           {cur.published ? `Opublikowana wersja: weryfikacja ${cur.published.legalReviewedAt} (${cur.published.legalReviewedBy ?? "—"})` : "Brak opublikowanej wersji"}
         </p>
       </div>
-      <InstructionEditor initial={cur.draft} status={cur.status} hasPublished={Boolean(cur.published)} leadTopics={listLeadConfigs().map((c) => c.topic)} />
+      <InstructionEditor initial={cur.draft} status={cur.status} hasPublished={Boolean(cur.published)} leadTopics={listLeadConfigs().map((c) => c.topic)} experts={listExperts().map((e) => ({ id: e.id, name: e.name }))} />
     </div>
   );
 }

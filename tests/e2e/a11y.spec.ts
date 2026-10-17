@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const PAGES = ["/", "/instrukcje", "/instrukcje/jak-wyjsc-z-dlugow", "/instrukcje/co-zrobic-gdy-komornik-zajal-konto", "/pytania", "/pytania/czy-komornik-moze-zajac-cale-konto", "/kategorie/umowy-i-konsumenci", "/jak-to-dziala", "/szukaj?q=komornik", "/admin/login"];
+const PAGES = ["/", "/informacje", "/instrukcje", "/instrukcje/jak-wyjsc-z-dlugow", "/instrukcje/co-zrobic-gdy-komornik-zajal-konto", "/pytania", "/pytania/czy-komornik-moze-zajac-cale-konto", "/kategorie/umowy-i-konsumenci", "/jak-to-dziala", "/szukaj?q=komornik", "/admin/login"];
 
 for (const url of PAGES) {
   test(`WCAG 2.2 AA (axe) – ${url}`, async ({ page }) => {

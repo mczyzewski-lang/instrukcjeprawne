@@ -24,7 +24,7 @@ describe("rozdzielenie szkiców i treści zatwierdzonych", () => {
 
   it("szkic nigdy nie jest publiczny", () => {
     expect(getPublicQuestion("czy-komornik-moze-zabrac-samochod")).toBeNull();
-    expect(getPublicQuestion("jak-odrzucic-spadek-z-dlugami")).toBeNull();
+    expect(getPublicQuestion("ile-trwa-rozwod-bez-orzekania-o-winie")).toBeNull();
   });
 
   it("publikacja zapisuje recenzenta i datę; edycja nie zmienia wersji opublikowanej", () => {

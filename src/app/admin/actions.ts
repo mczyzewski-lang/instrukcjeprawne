@@ -293,3 +293,65 @@ export async function uploadIllustrationAction(fd: FormData) {
   revalidatePath("/instrukcje", "layout");
   redirect(`${back}${back.includes("?") ? "&" : "?"}${r.ok ? "info=upload" : `blad=${encodeURIComponent(r.error)}`}`);
 }
+
+/* ---------- eksperci i ustawienia ---------- */
+
+export async function saveExpertAction(fd: FormData) {
+  await requireAdmin();
+  const { getExpert, saveExpert } = await import("@/lib/repo/experts");
+  const id = String(fd.get("id"));
+  const cur = getExpert(id);
+  if (!cur) redirect("/admin/eksperci");
+  const str = (k: string, max: number) => String(fd.get(k) ?? "").trim().slice(0, max);
+  const name = str("name", 120);
+  const status = fd.get("status") === "published" ? "published" : "draft";
+  const categories = fd.getAll("categories").map(String) as typeof cur.categories;
+  if (status === "published" && (name.length < 3 || !str("title", 120) || !str("bio", 1200))) {
+    redirect(`/admin/eksperci?blad=${encodeURIComponent("Aby opublikować, uzupełnij imię i nazwisko, tytuł zawodowy i opis.")}#${id}`);
+  }
+  saveExpert({
+    ...cur,
+    name: name || cur.name,
+    title: str("title", 120),
+    role: str("role", 160),
+    bio: str("bio", 1200),
+    affiliation: str("affiliation", 300),
+    categories: categories.length ? categories : cur.categories,
+    status,
+  });
+  revalidatePath("/", "layout");
+  redirect(`/admin/eksperci?info=zapisano#${id}`);
+}
+
+export async function uploadExpertPhotoAction(fd: FormData) {
+  await requireAdmin();
+  const { saveExpertPhoto } = await import("@/lib/repo/experts");
+  const id = String(fd.get("id"));
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size === 0) redirect(`/admin/eksperci?blad=${encodeURIComponent("Wybierz zdjęcie")}#${id}`);
+  const r = saveExpertPhoto(id, Buffer.from(await (file as File).arrayBuffer()), (file as File).type);
+  revalidatePath("/", "layout");
+  redirect(r.ok ? `/admin/eksperci?info=zdjecie#${id}` : `/admin/eksperci?blad=${encodeURIComponent(r.error)}#${id}`);
+}
+
+export async function saveFoundersVideoAction(fd: FormData) {
+  await requireAdmin();
+  const { setSetting } = await import("@/lib/repo/experts");
+  const url = String(fd.get("url") ?? "").trim();
+  if (url) {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== "https:" && u.protocol !== "http:") throw new Error();
+    } catch {
+      redirect(`/admin/ustawienia?blad=${encodeURIComponent("Podaj poprawny adres URL filmu")}`);
+    }
+  }
+  setSetting("founders_video", {
+    url,
+    title: String(fd.get("title") ?? "").trim().slice(0, 200) || "Film od założycieli",
+    poster: String(fd.get("poster") ?? "").trim().slice(0, 500) || undefined,
+    transcript: String(fd.get("transcript") ?? "").trim().slice(0, 20000) || undefined,
+  });
+  revalidatePath("/informacje");
+  redirect("/admin/ustawienia?info=zapisano");
+}

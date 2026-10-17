@@ -1,5 +1,6 @@
 import { Clock, Download, Scale } from "lucide-react";
 import Link from "next/link";
+import { ExpertByline, ExpertCard } from "@/components/instruction/Expert";
 import { InstructionExplorer } from "@/components/instruction/InstructionExplorer";
 import { SectionHeading } from "@/components/instruction/SectionHeading";
 import { FreeHelpList, SourcesSection, WarningsSection, formatDate } from "@/components/instruction/ServerSections";
@@ -13,6 +14,7 @@ import { ReviewBanner } from "@/components/ui/ReviewBanner";
 import { categoryBySlug } from "@/content/categories";
 import { SITE_NAME, siteUrl } from "@/lib/config";
 import { approvedIllustrations } from "@/lib/illustration-generator";
+import { expertFor } from "@/lib/repo/experts";
 import { getLeadConfig } from "@/lib/repo/leads";
 import { getPublicQuestion, listPublicInstructions } from "@/lib/repo/content";
 import type { Instruction } from "@/lib/types";
@@ -21,6 +23,7 @@ import type { Instruction } from "@/lib/types";
 export function InstructionView({ ins, reviewed, preview = false }: { ins: Instruction; reviewed: boolean; preview?: boolean }) {
   const v = { reviewed };
   const category = categoryBySlug(ins.category);
+  const ex = expertFor(ins.category, ins.expertId);
   const sourceNumbers = Object.fromEntries(ins.sourceReferences.map((s, i) => [s.id, i + 1]));
   const approved = Object.fromEntries(approvedIllustrations(`step:${ins.id}:`));
   const leadCfg = ins.leadTopic ? getLeadConfig(ins.leadTopic) : null;
@@ -124,6 +127,11 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
 
       <section aria-labelledby="sekcja-a" className="border-t border-line py-12 sm:py-16">
         <SectionHeading letter="A" id="sekcja-a" title="Zrozum swoją sytuację" lead="Kilka pytań, które pomogą Ci się zorientować. To nie jest diagnoza prawna." />
+        {ex && (
+          <div className="mt-6 sm:pl-[5.25rem]">
+            <ExpertByline expert={ex.expert} placeholder={ex.placeholder} />
+          </div>
+        )}
         <SituationQuestions questions={ins.situationQuestions} />
       </section>
 
@@ -137,9 +145,11 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
         }
         instructionTitles={instructionTitles}
         sourceNumbers={sourceNumbers}
-        warningsSlot={<WarningsSection warnings={ins.warnings} sourceNumbers={sourceNumbers} />}
+        warningsSlot={<WarningsSection warnings={ins.warnings} sourceNumbers={sourceNumbers} expert={ex} />}
         freeHelpSlot={<FreeHelpList items={ins.freeHelp} />}
       />
+
+      {ex && <ExpertCard expert={ex.expert} placeholder={ex.placeholder} reviewedAt={v.reviewed ? ins.legalReviewedAt : null} />}
 
       <SourcesSection
         sources={ins.sourceReferences}

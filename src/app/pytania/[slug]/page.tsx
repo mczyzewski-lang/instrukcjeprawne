@@ -8,7 +8,9 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { ReviewBanner } from "@/components/ui/ReviewBanner";
 import { StepNumber } from "@/components/ui/StepNumber";
 import { VideoBlock } from "@/components/ui/VideoBlock";
+import { ExpertByline } from "@/components/instruction/Expert";
 import { categoryBySlug } from "@/content/categories";
+import { expertFor } from "@/lib/repo/experts";
 import { siteUrl } from "@/lib/config";
 import { getPublicInstruction, getPublicQuestion, listPublicQuestions } from "@/lib/repo/content";
 
@@ -39,6 +41,7 @@ export default async function QuestionPage({ params }: P) {
   if (!v) notFound();
   const q = v.doc;
   const cat = categoryBySlug(q.category);
+  const ex = expertFor(q.category);
   const ins = q.relatedInstruction ? getPublicInstruction(q.relatedInstruction)?.doc : null;
   const path = ins && q.relatedPath ? ins.paths.find((p) => p.id === q.relatedPath) : null;
   const related = q.relatedQuestions.map((s) => getPublicQuestion(s)?.doc).filter((x) => x !== undefined);
@@ -108,6 +111,11 @@ export default async function QuestionPage({ params }: P) {
 
       <section aria-labelledby="zrodla" className="mt-12 border-t border-line pt-8">
         <h2 id="zrodla" className="text-xl font-extrabold">Źródła i stan prawny</h2>
+        {ex && (
+          <div className="mt-4">
+            <ExpertByline expert={ex.expert} placeholder={ex.placeholder} label="Dział nadzoruje" />
+          </div>
+        )}
         <p className="mt-2 text-sm text-muted">
           Stan na: {formatDate(q.updatedAt)} · Weryfikacja przez prawnika: {v.reviewed && q.legalReviewedAt ? formatDate(q.legalReviewedAt) : "oczekuje"}
         </p>

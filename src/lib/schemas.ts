@@ -127,6 +127,7 @@ export const instructionSchema = z
     relatedQuestions: z.array(slug),
     relatedInstructions: z.array(slug),
     leadTopic: z.string().max(80).nullable(),
+    expertId: z.string().max(80).nullable().optional(),
   })
   .superRefine((doc, ctx) => {
     const pathIds = doc.paths.map((p) => p.id);

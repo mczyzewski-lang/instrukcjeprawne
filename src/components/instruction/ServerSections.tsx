@@ -1,6 +1,8 @@
 import { AlertTriangle, ExternalLink, Phone } from "lucide-react";
 import Link from "next/link";
+import type { VisibleExpert } from "@/lib/repo/experts";
 import type { FreeHelpResource, SourceReference, Warning } from "@/lib/types";
+import { ExpertByline } from "./Expert";
 import { SectionHeading } from "./SectionHeading";
 
 const CONFIDENCE: Record<SourceReference["confidence"], string> = {
@@ -17,11 +19,16 @@ export const formatDate = (d: string | null | undefined) => {
   return `${day}.${m}.${y}`;
 };
 
-export function WarningsSection({ warnings, sourceNumbers }: { warnings: Warning[]; sourceNumbers: Record<string, number> }) {
+export function WarningsSection({ warnings, sourceNumbers, expert }: { warnings: Warning[]; sourceNumbers: Record<string, number>; expert?: VisibleExpert | null }) {
   if (!warnings.length) return null;
   return (
     <section id="uwaga" aria-labelledby="sekcja-e" className="border-t border-line py-12 sm:py-16">
       <SectionHeading letter="E" id="sekcja-e" title="Na co uważać?" lead="Najczęstsze błędy, które trudno później odwrócić." />
+      {expert && (
+        <div className="mt-6 sm:pl-[5.25rem]">
+          <ExpertByline expert={expert.expert} placeholder={expert.placeholder} label="Ostrzeżenia sprawdza" />
+        </div>
+      )}
       <ul className="mt-8 grid gap-3 md:grid-cols-2">
         {warnings.map((w) => (
           <li key={w.id} className={`rounded-md border bg-white p-5 ${w.severity === "urgent" ? "border-urgent" : "border-line"}`}>
