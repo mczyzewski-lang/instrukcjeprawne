@@ -13,7 +13,9 @@ export type ClientEventName =
   | "instruction_step_completed"
   | "pdf_downloaded"
   | "expert_cta_clicked"
-  | "lead_submitted";
+  | "lead_submitted"
+  | "plan_generated"
+  | "plan_discuss_clicked";
 
 export const CONSENT_KEY = "ip_consent_v1";
 export type ConsentValue = "granted" | "denied";

@@ -128,6 +128,7 @@ export const instructionSchema = z
     relatedInstructions: z.array(slug),
     leadTopic: z.string().max(80).nullable(),
     expertId: z.string().max(80).nullable().optional(),
+    planName: z.string().trim().max(60).nullable().optional(),
   })
   .superRefine((doc, ctx) => {
     const pathIds = doc.paths.map((p) => p.id);
@@ -248,6 +249,8 @@ export const chatStartSchema = z.object({
   pathId: id.optional(),
   website: z.string().max(0).optional(),
   startedAt: z.number().int().positive(),
+  /** kod „Planu …” dołączonego do wiadomości */
+  plan: z.string().max(4000).regex(/^[A-Za-z0-9_-]+$/).optional(),
 });
 
 export type ChatStartInput = z.infer<typeof chatStartSchema>;
@@ -268,4 +271,5 @@ export type EmailMessageInput = z.infer<typeof emailMessageSchema>;
 export const chatMessageSchema = z.object({
   token: z.string().min(20).max(100),
   message: z.string().trim().min(1).max(2000, "Wiadomość jest za długa (maks. 2000 znaków)"),
+  plan: z.string().max(4000).regex(/^[A-Za-z0-9_-]+$/).optional(),
 });

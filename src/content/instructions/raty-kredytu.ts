@@ -177,5 +177,6 @@ export const ratyKredytu = defineInstruction({
   ],
   relatedQuestions: ["co-zrobic-gdy-rata-przekracza-dochod", "czy-bank-moze-sprzedac-moj-dlug"],
   relatedInstructions: ["jak-wyjsc-z-dlugow", "jak-sprawdzic-koszty-kredytu"],
+  planName: "spłaty kredytu",
   leadTopic: "dlugi-osobiste",
 });

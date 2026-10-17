@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, MessageCircle, Send } from "lucide-react";
+import { FileText, Mail, MessageCircle, Send, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { store, track } from "@/lib/analytics-client";
 
@@ -23,6 +23,40 @@ interface Props {
   expert: ChatExpert | null;
   /** zewnętrzna prośba o otwarcie (np. z wyboru „Z ekspertem” pod krokami) */
   openSignal?: number;
+  /** „Plan …” dołączany do najbliższej wiadomości */
+  attachment?: ChatAttachment | null;
+  onAttachmentChange?: (a: ChatAttachment | null) => void;
+}
+
+export interface ChatAttachment {
+  title: string;
+  /** kod planu (z niego serwer odtwarza plan i PDF) */
+  code: string;
+  href: string;
+  summary: string;
+}
+
+/** Karta pliku – „a'la PDF” w oknie czatu. */
+function AttachmentCard({ title, href, summary, onRemove, tone = "light" }: { title: string; href: string; summary?: string; onRemove?: () => void; tone?: "light" | "dark" }) {
+  return (
+    <div className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${tone === "dark" ? "border-white/30 bg-white/10" : "border-line bg-white"}`}>
+      <span aria-hidden="true" className={`flex h-10 w-8 shrink-0 flex-col items-center justify-end rounded-sm border pb-1 text-[0.55rem] font-extrabold ${tone === "dark" ? "border-white/60" : "border-navy"}`}>
+        <FileText className="mb-0.5 h-3.5 w-3.5" />
+        PDF
+      </span>
+      <span className="min-w-0 flex-1">
+        <a href={href} target="_blank" rel="noopener" className={`block truncate text-sm font-bold ${tone === "dark" ? "text-white" : ""}`}>
+          {title}.pdf
+        </a>
+        {summary && <span className={`block truncate text-xs ${tone === "dark" ? "text-white/75" : "text-muted"}`}>{summary}</span>}
+      </span>
+      {onRemove && (
+        <button type="button" onClick={onRemove} aria-label={`Usuń załącznik ${title}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-muted hover:bg-canvas hover:text-navy">
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
 }
 
 type Tab = "chat" | "email";
@@ -32,6 +66,7 @@ interface Msg {
   author: "user" | "expert" | "system";
   body: string;
   authorName?: string | null;
+  attachment?: { title: string; href: string; summary?: string } | null;
 }
 
 const PREFIXES = ["+48", "+49", "+44", "+353", "+31", "+47", "+46", "+420", "+380", "+1"];
@@ -66,7 +101,7 @@ const MARKETING_TEXT = `Zgadzam się na otrzymywanie od ${OPERATOR} na podany ad
  * „Chat z ekspertem” (dane kontaktowe → pytanie → rozmowa) i „Wyślij wiadomość e-mail” (formularz wysyłany przez stronę).
  * Nie ma automatycznych wiadomości – odpowiedzi pisze człowiek w panelu.
  */
-export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, instructionTitle, pathId, pathName, expert, openSignal }: Props) {
+export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, instructionTitle, pathId, pathName, expert, openSignal, attachment = null, onAttachmentChange }: Props) {
   const storeKey = `ip:chat:${instructionSlug}`;
   const ids = useId();
   const [tab, setTab] = useState<Tab>("chat");
@@ -116,6 +151,14 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
     setTimeout(() => (composerRef.current ?? firstFieldRef.current)?.focus({ preventScroll: true }), 400);
   }, [openSignal, instructionSlug, pathId]);
 
+  // dołączony plan: podpowiedź treści, jeśli pole jest puste
+  useEffect(() => {
+    if (!attachment) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reakcja na dołączenie planu w innym miejscu strony
+    setText((t) => t || `Dzień dobry, w załączeniu mój ${attachment.title}. Chcę go omówić – od czego zacząć w mojej sytuacji?`);
+    setMailBody((t) => t || `Dzień dobry, w załączeniu mój ${attachment.title}. Chcę go omówić – od czego zacząć w mojej sytuacji?`);
+  }, [attachment]);
+
   // przywrócenie rozmowy z tej przeglądarki
   useEffect(() => {
     const saved = store.get<{ id: string; token: string } | null>(storeKey, null);
@@ -132,13 +175,13 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
         setSession(null);
         return;
       }
-      const json = (await res.json()) as { status: string; messages: { id: number; author: Msg["author"]; author_name: string | null; body: string }[] };
+      const json = (await res.json()) as { status: string; messages: { id: number; author: Msg["author"]; author_name: string | null; body: string; attachment: Msg["attachment"] }[] };
       setClosed(json.status === "closed");
       if (json.messages.length) {
         lastId.current = json.messages[json.messages.length - 1].id;
         setMsgs((list) => [
           ...list.filter((m) => !m.id.startsWith("local-")),
-          ...json.messages.map((m) => ({ id: `s-${m.id}`, author: m.author, body: m.body, authorName: m.author_name })),
+          ...json.messages.map((m) => ({ id: `s-${m.id}`, author: m.author, body: m.body, authorName: m.author_name, attachment: m.attachment })),
         ]);
       }
     } catch {
@@ -183,10 +226,17 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
     if (body.length < (session ? 1 : 5)) return setError("Napisz krótko, w czym możemy pomóc.");
     if (session) {
       setText("");
-      setMsgs((l) => [...l, { id: `local-${Date.now()}`, author: "user", body }]);
-      const res = await fetch(`/api/chat/${session.id}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: session.token, message: body }) });
+      setMsgs((l) => [...l, { id: `local-${Date.now()}`, author: "user", body, attachment }]);
+      const res = await fetch(`/api/chat/${session.id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: session.token, message: body, plan: attachment?.code }),
+      });
       if (!res.ok) setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Nie udało się wysłać wiadomości.");
-      else void fetchMessages();
+      else {
+        onAttachmentChange?.(null);
+        void fetchMessages();
+      }
       return;
     }
     setSending(true);
@@ -206,6 +256,7 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
           pathId,
           website: (document.getElementById(`${ids}-www`) as HTMLInputElement | null)?.value || undefined,
           startedAt: startedAt.current || Date.now(),
+          plan: attachment?.code,
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { ok?: boolean; id?: string; token?: string; error?: string; fieldErrors?: Record<string, string> };
@@ -223,6 +274,7 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
       setText("");
       setMsgs([]);
       lastId.current = 0;
+      onAttachmentChange?.(null);
       setSession(s);
     } catch {
       setError("Brak połączenia. Spróbuj ponownie.");
@@ -252,6 +304,7 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
           phonePrefix: prefix,
           phone: digitsOf(phone) || undefined,
           subject: subject.trim(),
+          plan: attachment?.code,
           message: `${mailBody.trim()}${pathName ? `\n\n(Droga: ${pathName})` : ""}`,
           topic,
           instructionSlug,
@@ -269,6 +322,7 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
       }
       track("lead_submitted", { instructionSlug, pathId, props: { topic, source: "email" } });
       setMailState("sent");
+      onAttachmentChange?.(null);
       setMailBody("");
     } catch {
       setMailError("Brak połączenia. Spróbuj ponownie.");
@@ -413,6 +467,12 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
             {!session && !ready && (
               <form onSubmit={goToQuestion} noValidate className="m-auto grid w-full max-w-sm gap-4 px-4 py-8">
                 <p className="text-center font-extrabold">Żeby rozpocząć rozmowę, wpisz swoje dane</p>
+                {attachment && (
+                  <div className="grid gap-1.5">
+                    <p className="text-center text-xs text-muted">Do pierwszej wiadomości dołączymy:</p>
+                    <AttachmentCard title={attachment.title} href={attachment.href} summary={attachment.summary} onRemove={() => onAttachmentChange?.(null)} />
+                  </div>
+                )}
                 {contactFields(true)}
                 <button className="btn btn-primary">Przejdź do pytania</button>
               </form>
@@ -435,8 +495,9 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
               <div ref={logRef} role="log" aria-live="polite" aria-label="Wiadomości czatu" className="grid max-h-[26rem] flex-1 content-start gap-3 overflow-y-auto px-4 py-4">
                 {msgs.map((m) =>
                   m.author === "user" ? (
-                    <div key={m.id} className="ml-auto max-w-[85%] rounded-md bg-navy px-3.5 py-2.5 text-sm whitespace-pre-line text-white">
-                      {m.body}
+                    <div key={m.id} className="ml-auto grid max-w-[85%] gap-2 rounded-md bg-navy px-3.5 py-2.5 text-sm whitespace-pre-line text-white">
+                      {m.attachment && <AttachmentCard title={m.attachment.title} href={m.attachment.href} summary={m.attachment.summary} tone="dark" />}
+                      <span>{m.body}</span>
                     </div>
                   ) : m.author === "expert" ? (
                     <div key={m.id} className="flex max-w-[90%] items-end gap-2">
@@ -458,6 +519,11 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
 
             {(ready || session) && !closed && (
               <form onSubmit={send} noValidate className="mt-auto border-t border-line bg-white p-3">
+                {attachment && (
+                  <div className="mb-2">
+                    <AttachmentCard title={attachment.title} href={attachment.href} summary={`Załącznik · ${attachment.summary}`} onRemove={() => onAttachmentChange?.(null)} />
+                  </div>
+                )}
                 <label htmlFor={`${ids}-msg`} className="sr-only">Twoje pytanie</label>
                 <div className="flex items-end gap-2 rounded-md border-2 border-line bg-white p-1.5 focus-within:border-navy">
                   <textarea
@@ -500,6 +566,7 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
               </div>
             ) : (
               <form onSubmit={sendMail} noValidate className="mx-auto grid w-full max-w-lg gap-4">
+                {attachment && <AttachmentCard title={attachment.title} href={attachment.href} summary={`Załącznik · ${attachment.summary}`} onRemove={() => onAttachmentChange?.(null)} />}
                 {contactFields(false)}
                 <div>
                   <label htmlFor={`${ids}-subject`} className="field-label">Temat</label>

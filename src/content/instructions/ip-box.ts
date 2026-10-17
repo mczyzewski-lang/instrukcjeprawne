@@ -232,5 +232,6 @@ export const ipBox = defineInstruction({
   ],
   relatedQuestions: ["czy-programista-na-b2b-moze-skorzystac-z-ip-box", "czy-ip-box-na-ryczalcie"],
   relatedInstructions: ["jak-ochronic-marke"],
+  planName: "IP BOX",
   leadTopic: "ip-box",
 });

@@ -3,6 +3,8 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mailConfig, siteUrl, smsAfterMinutes, smsConfig } from "../config";
 import { getDb } from "../db";
 import { sendMail } from "../mailer";
+import { buildPlan, decodePlan, planPdfHref } from "../plan";
+import type { Instruction } from "../types";
 import type { ChatStartInput, EmailMessageInput } from "../schemas";
 import { createLead, getLeadConfig } from "./leads";
 
@@ -38,12 +40,21 @@ export interface ChatRow {
   mail_status: string | null;
 }
 
+/** Załącznik wiadomości – na razie „Plan …” (PDF generowany z kodu odpowiedzi). */
+export interface ChatAttachment {
+  type: "plan";
+  title: string;
+  href: string;
+  summary?: string;
+}
+
 export interface ChatMessage {
   id: number;
   author: "user" | "expert" | "system";
   author_name: string | null;
   body: string;
   created_at: string;
+  attachment: ChatAttachment | null;
 }
 
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
@@ -55,6 +66,8 @@ interface StartMeta {
   expertEmail?: string | null;
   instructionTitle?: string;
   userAgent?: string;
+  /** zweryfikowany „Plan …” dołączony do pierwszej wiadomości */
+  attachment?: ChatAttachment | null;
 }
 
 type ThreadInput = Omit<ChatStartInput, "phone"> & { phone?: string; subject?: string };
@@ -107,7 +120,7 @@ async function createThread(channel: "chat" | "email", input: ThreadInput, meta:
       channel,
       input.subject ?? null,
     );
-  addMessage(id, "user", input.name, input.message);
+  addMessage(id, "user", input.name, input.message, meta.attachment);
 
   // powiadomienie eksperta e-mailem (odpowiedź „Odpowiedz” trafia wprost do użytkownika przy wiadomości e-mail)
   const to = meta.expertEmail || mailConfig().fallbackTo;
@@ -122,6 +135,7 @@ async function createThread(channel: "chat" | "email", input: ThreadInput, meta:
           "",
           input.message,
           "",
+          meta.attachment ? `Załącznik: ${meta.attachment.title} – ${siteUrl()}${meta.attachment.href}` : "",
           `Odpowiedz w panelu: ${adminLink}`,
         ]
           .filter((l, i) => l || i > 1)
@@ -142,9 +156,11 @@ export function sendEmailMessage(input: EmailMessageInput, meta: StartMeta) {
   return createThread("email", input, meta);
 }
 
-export function addMessage(chatId: string, author: ChatMessage["author"], authorName: string | null, body: string) {
+export function addMessage(chatId: string, author: ChatMessage["author"], authorName: string | null, body: string, attachment?: ChatAttachment | null) {
   const now = new Date().toISOString();
-  getDb().prepare("INSERT INTO chat_messages (chat_id, author, author_name, body, created_at) VALUES (?, ?, ?, ?, ?)").run(chatId, author, authorName, body, now);
+  getDb()
+    .prepare("INSERT INTO chat_messages (chat_id, author, author_name, body, created_at, attachment) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(chatId, author, authorName, body, now, attachment ? JSON.stringify(attachment) : null);
   getDb().prepare("UPDATE chats SET updated_at = ? WHERE id = ?").run(now, chatId);
 }
 
@@ -161,7 +177,19 @@ export function verifyChatToken(id: string, token: string): ChatRow | null {
 }
 
 export function listMessages(chatId: string, afterId = 0): ChatMessage[] {
-  return getDb().prepare("SELECT id, author, author_name, body, created_at FROM chat_messages WHERE chat_id = ? AND id > ? ORDER BY id").all(chatId, afterId) as unknown as ChatMessage[];
+  const rows = getDb()
+    .prepare("SELECT id, author, author_name, body, created_at, attachment FROM chat_messages WHERE chat_id = ? AND id > ? ORDER BY id")
+    .all(chatId, afterId) as unknown as (Omit<ChatMessage, "attachment"> & { attachment: string | null })[];
+  return rows.map((r) => ({ ...r, attachment: r.attachment ? (JSON.parse(r.attachment) as ChatAttachment) : null }));
+}
+
+/** Weryfikuje kod planu względem instrukcji i buduje załącznik (tytuł i link do PDF ustala serwer). */
+export function planAttachment(ins: Instruction | null | undefined, code: string | undefined): ChatAttachment | null {
+  if (!ins || !code) return null;
+  const input = decodePlan(code);
+  if (!input) return null;
+  const plan = buildPlan(ins, input);
+  return { type: "plan", title: plan.title, href: planPdfHref(ins.slug, code), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` };
 }
 
 export function markSeen(chatId: string, who: "user" | "admin") {

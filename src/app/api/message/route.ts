@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPublicInstruction } from "@/lib/repo/content";
-import { sendEmailMessage } from "@/lib/repo/chats";
+import { planAttachment, sendEmailMessage } from "@/lib/repo/chats";
 import { expertFor } from "@/lib/repo/experts";
 import { rateLimit } from "@/lib/repo/rate-limit";
 import { emailMessageSchema } from "@/lib/schemas";
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     expertName: ex && !ex.placeholder ? ex.expert.name : undefined,
     expertEmail: ex?.expert.email,
     instructionTitle: ins?.title,
+    attachment: planAttachment(ins, parsed.data.plan),
     userAgent: req.headers.get("user-agent") ?? undefined,
   });
   if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 400 });

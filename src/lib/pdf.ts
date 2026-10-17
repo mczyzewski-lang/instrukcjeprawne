@@ -4,6 +4,7 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import SVGtoPDF from "svg-to-pdfkit";
 import { renderIllustrationSvg } from "@/illustrations/library";
+import type { Plan, PlanItem } from "./plan";
 import { PATH_KIND_LABEL, type Instruction, type Path } from "./types";
 
 /**
@@ -356,5 +357,70 @@ export async function checklistPdf(ins: Instruction, p: Path, checked: string[],
   doc.font("B").fontSize(10).text("Cała instrukcja online:", M + 86, y + 14, { width: CW - 86 });
   doc.font("R").fontSize(9.5).fillColor(MUTED).text(opts.url, M + 86, doc.y + 2, { width: CW - 86 });
   pageNumbers(doc, `InstrukcjePrawne.pl · lista dokumentów · stan prawny ${fmt(ins.researchedAt)}`);
+  return toBuffer(doc);
+}
+
+/** Pozycja planu: kwadrat do odhaczenia, tytuł i (opcjonalnie) krótkie wyjaśnienie. */
+function planItem(doc: Doc, it: PlanItem) {
+  const tw = CW - 26;
+  const lh = doc.font("B").fontSize(10.5).heightOfString(it.label, { width: tw });
+  const dh = it.detail ? doc.font("R").fontSize(9).heightOfString(it.detail, { width: tw }) + 2 : 0;
+  ensure(doc, lh + dh + 10);
+  const y = doc.y;
+  doc.save().rect(M, y + 1, 12, 12).lineWidth(1.2).strokeColor(it.urgent ? URGENT : NAVY).stroke().restore();
+  if (it.done) doc.save().moveTo(M + 2.5, y + 7.5).lineTo(M + 5.2, y + 10.5).lineTo(M + 10.5, y + 3).lineWidth(2).strokeColor(GOLD).stroke().restore();
+  doc.font("B").fontSize(10.5).fillColor(it.urgent ? URGENT : NAVY).text(it.label, M + 22, y, { width: tw });
+  if (it.detail) doc.font("R").fontSize(9).fillColor(MUTED).text(it.detail, M + 22, doc.y + 1, { width: tw });
+  doc.y += 8;
+  doc.x = M;
+}
+
+/** „Plan …” – osobista checklista na podstawie odpowiedzi. */
+export async function planPdf(ins: Instruction, plan: Plan, opts: { url: string; planUrl: string }): Promise<Buffer> {
+  const doc = setup(`${plan.title} – ${ins.title}`);
+  doc.font("X").fontSize(11).fillColor(NAVY).text("INSTRUKCJE PRAWNE", M, M, { characterSpacing: 1.6, continued: true }).fillColor(GOLD).text(".");
+  doc.moveDown(2);
+  doc.font("B").fontSize(10).fillColor(MUTED).text(ins.title, { width: CW - 140 });
+  doc.font("X").fontSize(28).fillColor(NAVY).text(plan.title, { width: CW - 140 });
+  doc.font("R").fontSize(11).fillColor(MUTED).text(`Droga: ${plan.pathName} · przygotowano ${new Date().toLocaleDateString("pl-PL")} · ${plan.doneCount} z ${plan.total} zrobione`, { width: CW - 140 });
+  illustration(doc, "checklist", W - M - 120, M + 26, 120);
+  doc.y = Math.max(doc.y + 14, M + 150);
+
+  if (plan.situation.length || plan.decisions.length) {
+    sectionTitle(doc, "A", "Twoja sytuacja", "Na podstawie odpowiedzi w instrukcji.");
+    for (const s of plan.situation) {
+      ensure(doc, 34);
+      doc.font("B").fontSize(10).fillColor(NAVY).text(`${s.question} – ${s.answer}`, { width: CW });
+      doc.font("R").fontSize(9).fillColor(MUTED).text(s.meaning, { width: CW });
+      doc.moveDown(0.4);
+    }
+    for (const d of plan.decisions) {
+      ensure(doc, 20);
+      doc.font("R").fontSize(10).fillColor(NAVY).text(`${d.question} `, { width: CW, continued: true }).font("B").text(d.answer);
+      doc.moveDown(0.2);
+    }
+    if (plan.uncertain) doc.font("B").fontSize(9).fillColor(URGENT).text("Część odpowiedzi to „nie wiem” – wynik jest niepełny.", { width: CW });
+    doc.moveDown(1);
+  }
+
+  plan.sections.forEach((s, i) => {
+    ensure(doc, 70);
+    sectionTitle(doc, String(i + 1), s.title);
+    for (const it of s.items) planItem(doc, it);
+    doc.moveDown(0.8);
+  });
+
+  ensure(doc, 110);
+  const y = doc.y + 6;
+  await qr(doc, opts.planUrl, M, y, 72);
+  doc.font("B").fontSize(10).fillColor(NAVY).text("Ten plan online (z Twoimi odpowiedziami):", M + 86, y + 6, { width: CW - 86 });
+  doc.font("R").fontSize(9).fillColor(MUTED).text(opts.url, M + 86, doc.y + 2, { width: CW - 86 });
+  doc.font("R").fontSize(8.5).fillColor(MUTED).text(
+    "Plan powstał automatycznie z odpowiedzi w instrukcji. To informacja ogólna, nie ocena prawna Twojej sprawy – omów go z ekspertem lub w punkcie nieodpłatnej pomocy prawnej.",
+    M + 86,
+    doc.y + 8,
+    { width: CW - 86 },
+  );
+  pageNumbers(doc, `InstrukcjePrawne.pl · ${plan.title} · stan prawny ${fmt(ins.researchedAt)}`);
   return toBuffer(doc);
 }

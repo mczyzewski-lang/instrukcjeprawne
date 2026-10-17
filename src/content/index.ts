@@ -8,6 +8,16 @@ import { kosztyKredytu } from "./instructions/koszty-kredytu";
 import { ochronaMarki } from "./instructions/ochrona-marki";
 import { ratyKredytu } from "./instructions/raty-kredytu";
 import { rozwod } from "./instructions/rozwod";
+import { nakazZaplaty } from "./instructions/nakaz-zaplaty";
+import { upadloscKonsumencka } from "./instructions/upadlosc-konsumencka";
+import { kredytChf } from "./instructions/kredyt-chf";
+import { alimenty } from "./instructions/alimenty";
+import { kontaktyDziecko } from "./instructions/kontakty-dziecko";
+import { niezaplaconaFaktura } from "./instructions/niezaplacona-faktura";
+import { jdgZDlugami } from "./instructions/jdg-z-dlugami";
+import { odpowiedzialnoscZarzadu } from "./instructions/odpowiedzialnosc-zarzadu";
+import { spadekZDlugami } from "./instructions/spadek-z-dlugami";
+import { naruszenieMarki } from "./instructions/naruszenie-marki";
 import { ANSWERED_QUESTIONS } from "./questions";
 import { MORE_QUESTIONS } from "./questions-more";
 
@@ -21,6 +31,16 @@ export const SEED_INSTRUCTIONS: Instruction[] = [
   kosztyKredytu,
   komornikKonto,
   ratyKredytu,
+  nakazZaplaty,
+  upadloscKonsumencka,
+  kredytChf,
+  alimenty,
+  kontaktyDziecko,
+  niezaplaconaFaktura,
+  jdgZDlugami,
+  odpowiedzialnoscZarzadu,
+  spadekZDlugami,
+  naruszenieMarki,
 ];
 
 /** Kolejność na stronie głównej. */

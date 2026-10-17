@@ -1,13 +1,16 @@
 "use client";
 
-import { Check, Download, Printer } from "lucide-react";
+import { Check, Download, ListChecks, Printer } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Illustration } from "@/components/ui/Illustration";
 import { StepNumber } from "@/components/ui/StepNumber";
 import { store, track } from "@/lib/analytics-client";
 import { PATH_KIND_LABEL, type Instruction, type Path } from "@/lib/types";
 import { DecisionTree } from "./DecisionTree";
-import { ExpertChat, type ChatExpert } from "./ExpertChat";
+import { buildPlan, encodePlan, planPdfHref, planTitle, type PlanInput } from "@/lib/plan";
+import { ExpertChat, type ChatAttachment, type ChatExpert } from "./ExpertChat";
+import { PlanPanel } from "./PlanPanel";
+import { situationKey } from "./SituationQuestions";
 import { SectionHeading } from "./SectionHeading";
 
 export interface LeadProps {
@@ -64,24 +67,34 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
   const [done, setDone] = useState<string[]>([]);
   const [checked, setChecked] = useState<string[]>([]);
   const [chatSignal, setChatSignal] = useState(0);
+  const [treeAnswers, setTreeAnswers] = useState<string[]>([]);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planTicks, setPlanTicks] = useState<string[]>([]);
+  const [situation, setSituation] = useState<PlanInput["s"]>({});
+  const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
   const path = ins.paths.find((p) => p.id === selected) ?? ins.paths[0];
   const pathNames = useMemo(() => Object.fromEntries(ins.paths.map((p) => [p.id, p.name])), [ins.paths]);
   const storeKey = `ip:${ins.slug}`;
 
   useEffect(() => {
     const fromHash = window.location.hash.match(/^#droga-([a-z0-9-]+)/)?.[1];
-    const saved = store.get<{ path?: string; done?: string[]; checked?: string[] }>(storeKey, {});
+    const saved = store.get<{ path?: string; done?: string[]; checked?: string[]; plan?: boolean; planTicks?: string[] }>(storeKey, {});
     const initial = [fromHash, saved.path].find((p) => p && ins.paths.some((x) => x.id === p));
     /* eslint-disable react-hooks/set-state-in-effect -- przywrócenie postępu z localStorage po hydratacji */
     if (initial) setSelected(initial);
     setDone(saved.done ?? []);
     setChecked(saved.checked ?? []);
+    setPlanTicks(saved.planTicks ?? []);
+    if (saved.plan) {
+      setSituation(readSituation(ins.slug));
+      setPlanOpen(true);
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
     track("instruction_opened", { instructionSlug: ins.slug });
     store.set("ip:last", { slug: ins.slug, title: ins.title, at: Date.now() });
   }, [ins.slug, ins.title, ins.paths, storeKey]);
 
-  const persist = (patch: { path?: string; done?: string[]; checked?: string[] }) => {
+  const persist = (patch: { path?: string; done?: string[]; checked?: string[]; plan?: boolean; planTicks?: string[] }) => {
     const cur = store.get<Record<string, unknown>>(storeKey, {});
     store.set(storeKey, { ...cur, ...patch });
   };
@@ -114,6 +127,39 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     if (!checked.includes(id)) track("instruction_step_completed", { instructionSlug: ins.slug, pathId: path.id, props: { checklist_item: id } });
   };
 
+  /* ---------- Plan ---------- */
+  const planInput: PlanInput = useMemo(
+    () => ({ s: situation, o: treeAnswers, p: selected, d: [...done, ...checked, ...planTicks] }),
+    [situation, treeAnswers, selected, done, checked, planTicks],
+  );
+  const plan = useMemo(() => (planOpen ? buildPlan(ins, planInput) : null), [planOpen, ins, planInput]);
+  const planCode = useMemo(() => (plan ? encodePlan({ ...planInput, p: plan.pathId }) : ""), [plan, planInput]);
+  const planLabel = `Wygeneruj bezpłatnie ${planTitle(ins)}`;
+
+  const generatePlan = (source: string) => {
+    setSituation(readSituation(ins.slug));
+    setPlanOpen(true);
+    persist({ plan: true });
+    track("plan_generated", { instructionSlug: ins.slug, pathId: path.id, props: { source } });
+    requestAnimationFrame(() => document.getElementById("plan")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  const isPlanDone = (id: string) => done.includes(id) || checked.includes(id) || planTicks.includes(id);
+  const togglePlan = (id: string) => {
+    if (path.steps.some((s) => s.id === id)) return toggleStep(id);
+    if (path.documents.some((d) => d.id === id)) return toggleCheck(id);
+    const next = planTicks.includes(id) ? planTicks.filter((x) => x !== id) : [...planTicks, id];
+    setPlanTicks(next);
+    persist({ planTicks: next });
+  };
+
+  const discussPlan = () => {
+    if (!plan) return;
+    setAttachment({ title: plan.title, code: planCode, href: planPdfHref(ins.slug, planCode), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` });
+    track("plan_discuss_clicked", { instructionSlug: ins.slug, pathId: plan.pathId });
+    openExpert("plan");
+  };
+
   const openExpert = (source: string) => {
     setChatSignal((n) => n + 1);
     void source;
@@ -139,6 +185,8 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
               instructionTitles={instructionTitles}
               onSelectPath={(id) => selectPath(id)}
               onResult={onResult}
+              onAnswersChange={setTreeAnswers}
+              planCta={{ label: planLabel, onClick: () => generatePlan("decision-tree") }}
             />
           </div>
           <PathMap paths={ins.paths} highlighted={highlighted} selected={selected} onSelect={selectPath} sourceNumbers={sourceNumbers} />
@@ -265,6 +313,35 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
         </div>
       </section>
 
+      {/* Plan – osobista checklista z odpowiedzi */}
+      <section id="plan" aria-label={planTitle(ins)} className="no-print-break pb-12 sm:pb-16">
+        {plan ? (
+          <PlanPanel
+            plan={plan}
+            pdfHref={planPdfHref(ins.slug, planCode)}
+            isDone={isPlanDone}
+            toggle={togglePlan}
+            onRefresh={() => setSituation(readSituation(ins.slug))}
+            onDiscuss={lead ? discussPlan : undefined}
+            onPdf={() => track("pdf_downloaded", { instructionSlug: ins.slug, pathId: plan.pathId, props: { source: "plan" } })}
+          />
+        ) : (
+          <div className="no-print flex flex-col gap-4 rounded-md border-2 border-navy bg-white p-5 sm:flex-row sm:items-center sm:p-7">
+            <ListChecks className="h-10 w-10 shrink-0" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-lg font-extrabold">{planTitle(ins)} – bezpłatnie, w minutę</p>
+              <p className="mt-1 text-sm text-muted">
+                Zbierzemy Twoje odpowiedzi, wybraną drogę, kroki, dokumenty i ostrzeżenia w jedną listę do odhaczania. Pobierzesz ją jako PDF – bez rejestracji i
+                bez e-maila.
+              </p>
+            </div>
+            <button type="button" className="btn btn-primary shrink-0" onClick={() => generatePlan("section")}>
+              {planLabel}
+            </button>
+          </div>
+        )}
+      </section>
+
       {/* E — ostrzeżenia (treść z serwera) */}
       {warningsSlot}
 
@@ -287,6 +364,8 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
                 pathName={path.name}
                 expert={expert}
                 openSignal={chatSignal}
+                attachment={attachment}
+                onAttachmentChange={setAttachment}
               />
             </div>
           )}
@@ -294,6 +373,11 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
       </section>
     </>
   );
+}
+
+function readSituation(slug: string): PlanInput["s"] {
+  const raw = store.get<Record<string, "tak" | "nie">>(situationKey(slug), {});
+  return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, v === "tak" ? 1 : 0])) as PlanInput["s"];
 }
 
 function PathMap({

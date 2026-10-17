@@ -280,5 +280,6 @@ export const dlugiFirmowe = defineInstruction({
   ],
   relatedQuestions: ["czy-czlonek-zarzadu-odpowiada-za-dlugi-spolki", "co-to-jest-dzien-ukladowy", "czy-jdg-moze-oglosic-upadlosc-konsumencka"],
   relatedInstructions: ["jak-wyjsc-z-dlugow", "jak-ochronic-marke"],
+  planName: "ratowania firmy",
   leadTopic: "dlugi-firmowe",
 });

@@ -214,6 +214,8 @@ export interface Instruction {
   leadTopic: string | null;
   /** ekspert nadzorujący merytorycznie (Expert.id); brak = przypisanie według kategorii */
   expertId?: string | null;
+  /** dopełnienie nazwy planu: „Plan {planName}”, np. „oddłużenia”; brak = „Plan działania” */
+  planName?: string | null;
 }
 
 /* ---------- Eksperci ---------- */

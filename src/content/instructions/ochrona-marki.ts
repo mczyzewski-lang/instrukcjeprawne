@@ -290,5 +290,6 @@ export const ochronaMarki = defineInstruction({
   ],
   relatedQuestions: ["czy-wpis-do-ceidg-chroni-nazwe-firmy", "ile-kosztuje-zgloszenie-znaku-towarowego"],
   relatedInstructions: ["jak-placic-5-procent-podatku-jako-programista", "jak-wyjsc-z-dlugow-firmowych"],
+  planName: "ochrony marki",
   leadTopic: "znak-towarowy",
 });

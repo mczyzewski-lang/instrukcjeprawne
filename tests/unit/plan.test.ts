@@ -1,0 +1,40 @@
+import { describe, expect, it } from "vitest";
+import { SEED_INSTRUCTIONS } from "@/content";
+import { buildPlan, decodePlan, encodePlan, planTitle } from "@/lib/plan";
+
+const ins = SEED_INSTRUCTIONS.find((i) => i.slug === "co-zrobic-gdy-komornik-zajal-konto")!;
+
+describe("Plan …", () => {
+  it("kod planu: zapis i odczyt, odrzucanie śmieci", () => {
+    const input = { s: { "q-pismo": 1 as const }, o: ["o-wiem"], p: "skarga", d: ["skarga-k1"] };
+    expect(decodePlan(encodePlan(input))).toEqual(input);
+    expect(decodePlan("!!!")).toBeNull();
+    expect(decodePlan(encodePlan({ s: { "Zły klucz": 1 } as never, o: ["<script>"], p: "x y", d: [] }))).toEqual({ s: {}, o: [], p: "", d: [] });
+  });
+
+  it("nazwa planu z instrukcji, z wartością domyślną", () => {
+    expect(planTitle({ planName: "oddłużenia" })).toBe("Plan oddłużenia");
+    expect(planTitle({ planName: null })).toBe("Plan działania");
+    for (const i of SEED_INSTRUCTIONS) expect(i.planName, i.slug).toBeTruthy();
+  });
+
+  it("buduje checklistę z odpowiedzi: pilne, kroki drogi, dokumenty, ostrzeżenia", () => {
+    const answers = ["o-nie-wiem-dlug", "o-czynnosc-tak", "o-pieniadze-nie"];
+    const plan = buildPlan(ins, { s: { "q-pismo": 0 }, o: answers, p: "nie-ma-takiej", d: ["kwota-wolna-k1"] });
+    expect(plan.title).toBe("Plan działania wobec komornika");
+    // brak wybranej drogi → najważniejsza droga z wyniku drzewa
+    expect(plan.pathId).toBe("skarga");
+    expect(plan.situation[0]).toMatchObject({ answer: "Nie" });
+    expect(plan.decisions).toHaveLength(3);
+    const ids = plan.sections.map((s) => s.id);
+    expect(ids).toEqual(expect.arrayContaining(["pilne", "kroki", "dokumenty", "uwaga", "inne"]));
+    expect(plan.sections.find((s) => s.id === "kroki")!.items.map((i) => i.id)).toContain("skarga-k1");
+    expect(plan.total).toBe(plan.sections.flatMap((s) => s.items).length);
+  });
+
+  it("bez drzewa decyzji zostaje droga wybrana przez użytkownika", () => {
+    const plan = buildPlan(ins, { s: {}, o: [], p: "porozumienie", d: ["porozumienie-k1"] });
+    expect(plan.pathId).toBe("porozumienie");
+    expect(plan.doneCount).toBe(1);
+  });
+});

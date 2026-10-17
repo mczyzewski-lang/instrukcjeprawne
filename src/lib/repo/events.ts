@@ -19,12 +19,14 @@ export const EVENT_NAMES = [
   "pdf_downloaded",
   "expert_cta_clicked",
   "lead_submitted",
+  "plan_generated",
+  "plan_discuss_clicked",
 ] as const;
 
 export type EventName = (typeof EVENT_NAMES)[number];
 
 /** Zdarzenia uznawane za „konkretny krok w kierunku rozwiązania problemu”. */
-export const ACTION_EVENTS: EventName[] = ["decision_tree_completed", "path_selected", "instruction_step_completed", "pdf_downloaded", "expert_cta_clicked", "lead_submitted"];
+export const ACTION_EVENTS: EventName[] = ["decision_tree_completed", "path_selected", "instruction_step_completed", "pdf_downloaded", "expert_cta_clicked", "lead_submitted", "plan_generated", "plan_discuss_clicked"];
 
 const ALLOWED_PROPS = new Set(["query_length", "results", "node", "option", "outcomes", "step", "checklist_item", "path", "uncertain", "topic", "source"]);
 

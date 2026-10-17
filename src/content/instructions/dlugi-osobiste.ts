@@ -339,5 +339,6 @@ export const dlugiOsobiste = defineInstruction({
     "kiedy-dlug-sie-przedawnia",
   ],
   relatedInstructions: ["co-zrobic-gdy-komornik-zajal-konto", "co-zrobic-gdy-nie-mozesz-splacac-rat-kredytu", "jak-sprawdzic-koszty-kredytu"],
+  planName: "oddłużenia",
   leadTopic: "dlugi-osobiste",
 });

@@ -232,6 +232,9 @@ export function InstructionEditor({
               ))}
             </select>
           </Field>
+          <Field label="Nazwa planu" hint="Dopełnienie: „Plan …”, np. oddłużenia, rozwodu. Puste = „Plan działania”">
+            <input className="field-input" value={doc.planName ?? ""} onChange={(e) => patch({ planName: e.target.value || null })} placeholder="oddłużenia" />
+          </Field>
           <Field label="Ekspert nadzorujący" hint="Puste = ekspert przypisany do kategorii">
             <select className="field-input" value={doc.expertId ?? ""} onChange={(e) => patch({ expertId: e.target.value || null })}>
               <option value="">— według kategorii —</option>

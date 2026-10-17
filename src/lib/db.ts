@@ -169,6 +169,8 @@ function migrate(db: DatabaseSync) {
   if (!cols.has("channel")) db.exec("ALTER TABLE chats ADD COLUMN channel TEXT NOT NULL DEFAULT 'chat'");
   if (!cols.has("subject")) db.exec("ALTER TABLE chats ADD COLUMN subject TEXT");
   if (!cols.has("mail_status")) db.exec("ALTER TABLE chats ADD COLUMN mail_status TEXT");
+  const mcols = new Set((db.prepare("PRAGMA table_info(chat_messages)").all() as { name: string }[]).map((c) => c.name));
+  if (!mcols.has("attachment")) db.exec("ALTER TABLE chat_messages ADD COLUMN attachment TEXT");
 }
 
 /** Wgrywa brakujące treści startowe. Nigdy nie nadpisuje treści edytowanych w CMS. */
@@ -187,9 +189,16 @@ function seed(db: DatabaseSync) {
     `UPDATE questions SET status = ?, title = ?, draft_json = ?, updated_at = ?
      WHERE id = ? AND status = 'draft' AND published_json IS NULL AND json_extract(draft_json, '$.answer') = ''`,
   );
+  // nowe pole bez wpływu na treść merytoryczną – uzupełniamy w instrukcjach zapisanych wcześniej (bez nadpisywania edycji)
+  const fillPlanName = db.prepare(
+    `UPDATE instructions SET draft_json = json_set(draft_json, '$.planName', ?),
+       published_json = CASE WHEN published_json IS NULL THEN NULL ELSE json_set(published_json, '$.planName', ?) END
+     WHERE id = ? AND json_extract(draft_json, '$.planName') IS NULL`,
+  );
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const i of SEED_INSTRUCTIONS) insIns.run(i.id, i.slug, i.editorialStatus, i.category, JSON.stringify(i), now);
+    for (const i of SEED_INSTRUCTIONS) if (i.planName) fillPlanName.run(i.planName, i.planName, i.id);
     for (const q of SEED_QUESTIONS) insQ.run(q.id, q.slug, q.status, q.category, q.title, q.priority ?? null, JSON.stringify(q), now);
     for (const q of SEED_QUESTIONS) if (q.status !== "draft") upgradeQ.run(q.status, q.title, JSON.stringify(q), now, q.id);
     for (const l of LEAD_CONFIGURATIONS) insLead.run(l.topic, JSON.stringify(l));

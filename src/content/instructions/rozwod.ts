@@ -272,5 +272,6 @@ export const rozwod = defineInstruction({
   ],
   relatedQuestions: ["czy-mediacja-jest-obowiazkowa-przy-rozwodzie", "ile-kosztuje-rozwod"],
   relatedInstructions: ["jak-wyjsc-z-dlugow"],
+  planName: "rozwodu",
   leadTopic: "rozwod",
 });

@@ -147,7 +147,7 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
             <ExpertByline expert={ex.expert} placeholder={ex.placeholder} />
           </div>
         )}
-        <SituationQuestions questions={ins.situationQuestions} />
+        <SituationQuestions questions={ins.situationQuestions} slug={ins.slug} />
       </section>
 
       <InstructionExplorer

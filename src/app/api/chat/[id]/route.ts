@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { addMessage, listMessages, markSeen, verifyChatToken } from "@/lib/repo/chats";
+import { addMessage, listMessages, markSeen, planAttachment, verifyChatToken } from "@/lib/repo/chats";
+import { getPublicInstruction } from "@/lib/repo/content";
 import { rateLimit } from "@/lib/repo/rate-limit";
 import { chatMessageSchema } from "@/lib/schemas";
 
@@ -33,7 +34,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const chat = verifyChatToken(id, parsed.data.token);
   if (!chat) return NextResponse.json({ ok: false, error: "Nie znaleziono rozmowy." }, { status: 404 });
   if (chat.status === "closed") return NextResponse.json({ ok: false, error: "Ta rozmowa została zamknięta." }, { status: 409 });
-  addMessage(id, "user", chat.name, parsed.data.message);
+  const ins = chat.instruction_slug ? getPublicInstruction(chat.instruction_slug)?.doc : null;
+  addMessage(id, "user", chat.name, parsed.data.message, planAttachment(ins, parsed.data.plan));
   markSeen(id, "user");
   return NextResponse.json({ ok: true });
 }

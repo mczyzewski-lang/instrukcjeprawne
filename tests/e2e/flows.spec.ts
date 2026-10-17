@@ -237,3 +237,38 @@ test("linki zewnętrzne nie wyprowadzają ze strony – adres można skopiować"
   await expect(page.getByRole("button", { name: "Skopiowano adres" }).first()).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
 });
+
+test("Plan: generowanie z odpowiedzi, PDF i omówienie z ekspertem w czacie", async ({ page, request }) => {
+  await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  // odpowiedź w sekcji A trafia do planu
+  await page.locator("ol li").filter({ hasText: "01" }).first().getByRole("button", { name: "tak" }).click();
+  const tree = page.locator("#drzewo");
+  for (let i = 0; i < 8 && (await tree.locator("fieldset").count()) > 0; i++) await tree.locator("fieldset li button").first().click();
+  await tree.getByRole("button", { name: "Wygeneruj bezpłatnie Plan oddłużenia" }).click();
+  const plan = page.locator("#plan");
+  await expect(plan.getByRole("heading", { name: "Plan oddłużenia" })).toBeVisible();
+  await expect(plan.getByText(/z \d+ zrobione/).first()).toBeVisible();
+
+  // odhaczenie w planie = odhaczenie kroku w sekcji C
+  const first = plan.locator('section[aria-label^="Kroki"] input[type="checkbox"]').nth(1);
+  await first.check();
+  await expect(page.locator("#kroki").getByRole("button", { name: "Zrobione", exact: true })).toHaveCount(1);
+
+  const href = await plan.getByRole("link", { name: "Pobierz plan (PDF)" }).getAttribute("href");
+  const pdf = await request.get(href!);
+  expect(pdf.headers()["content-type"]).toContain("application/pdf");
+  expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
+
+  await plan.getByRole("button", { name: "Omów bezpłatnie Plan oddłużenia z ekspertem" }).click();
+  const help = page.locator("#pomoc");
+  await expect(help.getByText("Do pierwszej wiadomości dołączymy:")).toBeVisible();
+  await expect(help.getByRole("link", { name: "Plan oddłużenia.pdf" })).toBeVisible();
+  await help.getByLabel("Imię").fill("Ola");
+  await help.getByLabel("E-mail", { exact: true }).fill("ola@przyklad.pl");
+  await help.getByLabel("Telefon").fill("600 200 300");
+  await help.getByRole("button", { name: "Przejdź do pytania" }).click();
+  await expect(help.getByLabel("Twoje pytanie")).toHaveValue(/w załączeniu mój Plan oddłużenia/);
+  await page.waitForTimeout(3100);
+  await help.getByRole("button", { name: "Wyślij" }).click();
+  await expect(help.getByRole("log").getByRole("link", { name: "Plan oddłużenia.pdf" })).toBeVisible();
+});

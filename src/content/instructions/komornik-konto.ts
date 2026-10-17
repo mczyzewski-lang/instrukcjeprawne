@@ -183,5 +183,6 @@ export const komornikKonto = defineInstruction({
   ],
   relatedQuestions: ["czy-komornik-moze-zajac-cale-konto", "czy-komornik-moze-zabrac-samochod", "co-zrobic-po-otrzymaniu-nakazu-zaplaty"],
   relatedInstructions: ["jak-wyjsc-z-dlugow"],
+  planName: "działania wobec komornika",
   leadTopic: "dlugi-osobiste",
 });

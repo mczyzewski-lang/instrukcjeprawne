@@ -28,6 +28,11 @@ export default async function ChatDetail({ params, searchParams }: { params: Pro
             <li key={m.id} className={m.author === "system" ? "text-center text-xs text-muted" : `max-w-[85%] rounded-md p-3 text-sm whitespace-pre-line ${m.author === "user" ? "border border-line bg-white" : "ml-auto bg-navy text-white"}`}>
               {m.author !== "system" && <span className={`mb-1 block text-xs ${m.author === "user" ? "text-muted" : "text-white/70"}`}>{m.author_name ?? m.author} · {m.created_at.slice(0, 16).replace("T", " ")}</span>}
               {m.body}
+              {m.attachment && (
+                <a href={m.attachment.href} target="_blank" rel="noopener" className={`mt-2 block rounded-sm border px-3 py-2 text-xs font-bold no-underline ${m.author === "user" ? "border-line" : "border-white/40 text-white"}`}>
+                  📄 {m.attachment.title} (PDF){m.attachment.summary ? ` · ${m.attachment.summary}` : ""}
+                </a>
+              )}
             </li>
           ))}
         </ol>

@@ -1,11 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { store } from "@/lib/analytics-client";
 import type { SituationQuestion } from "@/lib/types";
 
-/** Sekcja A – pytania orientacyjne. Odpowiedź pokazuje, co oznacza dla dalszych kroków. Nic nie zapisujemy. */
-export function SituationQuestions({ questions }: { questions: SituationQuestion[] }) {
-  const [answers, setAnswers] = useState<Record<string, "tak" | "nie">>({});
+export const situationKey = (slug: string) => `ip:${slug}:sytuacja`;
+
+/**
+ * Sekcja A – pytania orientacyjne. Odpowiedź pokazuje, co oznacza dla dalszych kroków.
+ * Odpowiedzi zostają tylko w tej przeglądarce – korzysta z nich „Plan …”.
+ */
+export function SituationQuestions({ questions, slug }: { questions: SituationQuestion[]; slug: string }) {
+  const [answers, setAnswersState] = useState<Record<string, "tak" | "nie">>({});
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- odpowiedzi z localStorage dostępne po hydratacji
+    setAnswersState(store.get<Record<string, "tak" | "nie">>(situationKey(slug), {}));
+  }, [slug]);
+  const setAnswers = (fn: (s: Record<string, "tak" | "nie">) => Record<string, "tak" | "nie">) =>
+    setAnswersState((s) => {
+      const next = fn(s);
+      store.set(situationKey(slug), next);
+      return next;
+    });
   return (
     <ol className="mt-8 grid gap-3">
       {questions.map((q, i) => {

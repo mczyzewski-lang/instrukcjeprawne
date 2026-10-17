@@ -247,5 +247,6 @@ export const kosztyKredytu = defineInstruction({
   ],
   relatedQuestions: ["co-to-jest-sankcja-kredytu-darmowego", "czy-skd-dotyczy-kredytu-hipotecznego"],
   relatedInstructions: ["co-zrobic-gdy-nie-mozesz-splacac-rat-kredytu", "jak-wyjsc-z-dlugow"],
+  planName: "sprawdzenia kredytu",
   leadTopic: "koszty-kredytu",
 });

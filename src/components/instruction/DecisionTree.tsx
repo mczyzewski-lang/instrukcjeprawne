@@ -13,13 +13,17 @@ interface Props {
   instructionTitles: Record<string, string>;
   onSelectPath: (pathId: string) => void;
   onResult?: (pathIds: string[]) => void;
+  /** bieżące odpowiedzi (np. do „Planu …”) */
+  onAnswersChange?: (optionIds: string[]) => void;
+  /** przycisk pod wynikiem, np. „Wygeneruj bezpłatnie Plan oddłużenia” */
+  planCta?: { label: string; onClick: () => void };
 }
 
 /**
  * Uniwersalne drzewo decyzji konfigurowane danymi.
  * Stan = lista wybranych odpowiedzi; można się cofnąć, zacząć od nowa, udostępnić link (?odp=) i wydrukować podsumowanie.
  */
-export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitles, onSelectPath, onResult }: Props) {
+export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitles, onSelectPath, onResult, onAnswersChange, planCta }: Props) {
   const [answers, setAnswers] = useState<string[]>([]);
   const [shareMsg, setShareMsg] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -41,7 +45,8 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
       focusNext.current = false;
     }
     if (state.complete) onResult?.(state.outcomes.flatMap((o) => o.pathIds));
-  }, [state, onResult]);
+    onAnswersChange?.(state.answers.map((a) => a.optionId));
+  }, [state, onResult, onAnswersChange]);
 
   const choose = (optionId: string) => {
     if (answers.length === 0) track("decision_tree_started", { instructionSlug });
@@ -177,6 +182,15 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
                 </li>
               ))}
             </ol>
+            {planCta && (
+              <div className="mt-5 rounded-md border-2 border-navy bg-white p-4">
+                <p className="font-extrabold">Zbierz to w jeden plan</p>
+                <p className="mt-1 text-sm text-muted">Twoje odpowiedzi, wybrana droga, kroki i dokumenty – jako lista do odhaczania i PDF. Bez rejestracji.</p>
+                <button type="button" className="btn btn-primary mt-3 w-full sm:w-auto" onClick={planCta.onClick}>
+                  {planCta.label}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
