@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // pdfkit czyta własne pliki AFM z node_modules – nie może być bundlowany
   serverExternalPackages: ["pdfkit", "svg-to-pdfkit"],
+  async redirects() {
+    // dawna zakładka „Informacje” została połączona z „Jak to działa?”
+    return [{ source: "/informacje", destination: "/jak-to-dziala", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

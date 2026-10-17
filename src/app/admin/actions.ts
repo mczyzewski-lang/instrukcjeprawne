@@ -353,7 +353,7 @@ export async function saveFoundersVideoAction(fd: FormData) {
     poster: String(fd.get("poster") ?? "").trim().slice(0, 500) || undefined,
     transcript: String(fd.get("transcript") ?? "").trim().slice(0, 20000) || undefined,
   });
-  revalidatePath("/informacje");
+  revalidatePath("/jak-to-dziala");
   redirect("/admin/ustawienia?info=zapisano");
 }
 

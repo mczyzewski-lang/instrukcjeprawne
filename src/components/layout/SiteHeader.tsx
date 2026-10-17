@@ -5,7 +5,6 @@ const NAV = [
   { href: "/instrukcje", label: "Wszystkie instrukcje" },
   { href: "/pytania", label: "Najczęstsze pytania" },
   { href: "/jak-to-dziala", label: "Jak to działa?" },
-  { href: "/informacje", label: "Informacje" },
 ];
 
 export function SiteHeader() {

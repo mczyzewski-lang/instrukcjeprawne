@@ -29,7 +29,7 @@ Panel: `/admin`. Lokalnie bez `ADMIN_PASSWORD` hasło to `admin-lokalnie` (w pro
 - **Silnik instrukcji i drzew decyzji** konfigurowany danymi (`src/lib/decision-engine.ts`, `src/content/instructions/*`): wiele wyników, „nie wiem” = wynik niepełny, cofanie, od nowa, link `?odp=`, drukowalne podsumowanie `/instrukcje/[slug]/wynik`.
 - **8 instrukcji**: długi osobiste, długi firmowe, IP BOX, ochrona marki, rozwód, koszty kredytu (SKD), zajęte konto, raty kredytu.
 - **Baza pytań**: 93 odpowiedzi + kolejka redakcyjna (szkice niepubliczne) (szkice niepubliczne), import/eksport CSV, wideo (własne/Reels/TikTok/Shorts + transkrypcja).
-- **Eksperci** nadzorujący działy (`/admin/eksperci`, zdjęcie, ujawnienie powiązań) – widoczni dyskretnie w sekcjach A i E oraz w karcie „Kto odpowiada za tę instrukcję”; strona `/informacje` z miejscem na film 1:1 (`/admin/ustawienia`).
+- **Eksperci** nadzorujący działy (`/admin/eksperci`, zdjęcie, ujawnienie powiązań) – widoczni dyskretnie w sekcjach A i E oraz w karcie „Kto odpowiada za tę instrukcję”; strona `/jak-to-dziala` (o serwisie, budowa instrukcji, weryfikacja, eksperci) z miejscem na film 1:1; `/informacje` przekierowuje tam na stałe (`/admin/ustawienia`).
 - **CMS** (`/admin`): edycja instrukcji (pola + JSON dla drzewa/źródeł), szkic → do zatwierdzenia → publikacja z datą i nazwiskiem recenzenta, podgląd, archiwum; pytania; zgłoszenia; partnerzy; ilustracje; analityka.
 - **Treści robocze i zatwierdzone są rozdzielone** (`draft_json` / `published_json`). Treści AI mają status „do zatwierdzenia”, oznaczenie na stronie i `noindex`; sitemap zawiera tylko treści zatwierdzone.
 - **PDF** (pdfkit): cała instrukcja lub sama checklista, duże numery stron i kroków, SVG, schemat decyzji, źródła, kod QR. Bez e-maila.

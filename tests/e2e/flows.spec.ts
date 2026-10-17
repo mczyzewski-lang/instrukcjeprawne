@@ -180,16 +180,19 @@ test("panel: logowanie, publikacja instrukcji i import CSV", async ({ page }) =>
   await expect(page.getByText("Dzień dobry, zacznijmy od planu wychowawczego.").first()).toBeVisible();
 });
 
-test("ekspert nadzorujący i strona Informacje", async ({ page }) => {
+test("ekspert nadzorujący i strona Jak to działa", async ({ page }) => {
   await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
   await expect(page.getByText("Merytorycznie nadzoruje:")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Kto odpowiada za tę instrukcję" })).toBeVisible();
   // ekspert nie pojawia się w nagłówku (hero) instrukcji
   await expect(page.locator("article > header").getByText("Merytorycznie nadzoruje")).toHaveCount(0);
   await page.goto("/informacje");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Trudna sprawa");
+  await expect(page).toHaveURL(/\/jak-to-dziala$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Pokazujemy, co zrobić");
   await expect(page.getByText("Tu pojawi się film od założycieli")).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Główna nawigacja" }).getByRole("link", { name: "Informacje" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Z czego składa się instrukcja" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kto nadzoruje treści" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Główna nawigacja" }).getByRole("link", { name: "Informacje" })).toHaveCount(0);
 });
 
 test("przyklejony pasek pokazuje bieżącą sekcję i pozwala przejść do innej", async ({ page }) => {
