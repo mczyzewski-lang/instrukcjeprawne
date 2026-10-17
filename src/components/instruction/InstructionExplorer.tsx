@@ -14,6 +14,7 @@ import { PlanPanel } from "./PlanPanel";
 import { PlanWizard, type PlanConfig } from "./PlanWizard";
 import { MobilePlanBar } from "./MobilePlanBar";
 import { situationKey } from "./SituationQuestions";
+import { flyPlanToChat } from "@/lib/fly-to-chat";
 import { SectionHeading } from "./SectionHeading";
 
 export interface LeadProps {
@@ -167,8 +168,9 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     persist({ planTicks: next });
   };
 
-  const discussPlan = () => {
+  const discussPlan = (e?: React.MouseEvent<HTMLElement>) => {
     if (!plan) return;
+    void flyPlanToChat(e?.currentTarget.getBoundingClientRect() ?? null, plan.title);
     setAttachment({ title: plan.title, code: planCode, href: planPdfHref(ins.slug, planCode), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` });
     track("plan_discuss_clicked", { instructionSlug: ins.slug, pathId: plan.pathId });
     setModal(null);

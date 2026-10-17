@@ -12,7 +12,7 @@ interface Props {
   /** wraca do pytań kreatora */
   onEdit: () => void;
   /** brak = w tej instrukcji nie ma kontaktu z ekspertem */
-  onDiscuss?: () => void;
+  onDiscuss?: (e: React.MouseEvent<HTMLElement>) => void;
   onPdf?: () => void;
 }
 

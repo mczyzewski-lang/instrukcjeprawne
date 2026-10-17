@@ -39,7 +39,7 @@ export interface ChatAttachment {
 /** Karta pliku – „a'la PDF” w oknie czatu. */
 function AttachmentCard({ title, href, summary, onRemove, tone = "light" }: { title: string; href: string; summary?: string; onRemove?: () => void; tone?: "light" | "dark" }) {
   return (
-    <div className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${tone === "dark" ? "border-white/30 bg-white/10" : "border-line bg-white"}`}>
+    <div data-attachment-target={onRemove ? "" : undefined} className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${tone === "dark" ? "border-white/30 bg-white/10" : "border-line bg-white"}`}>
       <span aria-hidden="true" className={`flex h-10 w-8 shrink-0 flex-col items-center justify-end rounded-sm border pb-1 text-[0.55rem] font-extrabold ${tone === "dark" ? "border-white/60" : "border-navy"}`}>
         <FileText className="mb-0.5 h-3.5 w-3.5" />
         PDF
