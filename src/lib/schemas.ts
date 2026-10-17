@@ -252,6 +252,19 @@ export const chatStartSchema = z.object({
 
 export type ChatStartInput = z.infer<typeof chatStartSchema>;
 
+/** Wiadomość e-mail do eksperta wysyłana przez formularz na stronie (telefon opcjonalny). */
+export const emailMessageSchema = chatStartSchema.extend({
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v.replace(/[\s()-]/g, "") : undefined))
+    .refine((v) => !v || /^\d{6,12}$/.test(v), "Podaj poprawny numer telefonu albo zostaw pole puste"),
+  subject: z.string().trim().min(3, "Wpisz temat").max(160, "Temat jest za długi"),
+});
+
+export type EmailMessageInput = z.infer<typeof emailMessageSchema>;
+
 export const chatMessageSchema = z.object({
   token: z.string().min(20).max(100),
   message: z.string().trim().min(1).max(2000, "Wiadomość jest za długa (maks. 2000 znaków)"),

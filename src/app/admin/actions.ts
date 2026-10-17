@@ -368,7 +368,7 @@ export async function replyChatAction(fd: FormData) {
   if (!body) redirect(`/admin/czaty/${id}?blad=${encodeURIComponent("Wpisz treść odpowiedzi")}`);
   const r = await expertReply(id, as, body);
   revalidatePath(`/admin/czaty/${id}`);
-  redirect(`/admin/czaty/${id}?info=${encodeURIComponent(`Wysłano. SMS: ${r.sms}`)}`);
+  redirect(`/admin/czaty/${id}?info=${encodeURIComponent(`Wysłano. ${r.notice}`)}`);
 }
 
 export async function chatStatusAction(fd: FormData) {

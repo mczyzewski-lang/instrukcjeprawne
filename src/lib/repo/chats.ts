@@ -1,8 +1,9 @@
 import "server-only";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { siteUrl, smsAfterMinutes, smsConfig } from "../config";
+import { mailConfig, siteUrl, smsAfterMinutes, smsConfig } from "../config";
 import { getDb } from "../db";
-import type { ChatStartInput } from "../schemas";
+import { sendMail } from "../mailer";
+import type { ChatStartInput, EmailMessageInput } from "../schemas";
 import { createLead, getLeadConfig } from "./leads";
 
 /**
@@ -32,6 +33,9 @@ export interface ChatRow {
   user_seen_at: string | null;
   admin_seen_at: string | null;
   sms_status: string | null;
+  channel: "chat" | "email";
+  subject: string | null;
+  mail_status: string | null;
 }
 
 export interface ChatMessage {
@@ -44,14 +48,26 @@ export interface ChatMessage {
 
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
-export async function startChat(input: ChatStartInput, meta: { expertId?: string | null; expertName?: string; instructionTitle?: string; userAgent?: string }) {
+interface StartMeta {
+  expertId?: string | null;
+  expertName?: string;
+  /** adres, na który powiadamiamy eksperta o nowej wiadomości */
+  expertEmail?: string | null;
+  instructionTitle?: string;
+  userAgent?: string;
+}
+
+type ThreadInput = Omit<ChatStartInput, "phone"> & { phone?: string; subject?: string };
+
+async function createThread(channel: "chat" | "email", input: ThreadInput, meta: StartMeta) {
   const cfg = getLeadConfig(input.topic);
   if (!cfg) return { ok: false as const, error: "Nieznany temat rozmowy." };
   const id = randomUUID();
   const token = randomBytes(24).toString("base64url");
   const now = new Date().toISOString();
-  const phone = `${input.phonePrefix}${input.phone}`;
-  const db = getDb();
+  const phone = input.phone ? `${input.phonePrefix}${input.phone}` : "";
+  const adminLink = `${siteUrl()}/admin/czaty/${id}`;
+  const label = channel === "chat" ? "Czat z ekspertem" : "Wiadomość e-mail do eksperta";
   // zgłoszenie dla partnera (webhook) – z linkiem do rozmowy w panelu
   const lead = await createLead(
     {
@@ -61,40 +77,69 @@ export async function startChat(input: ChatStartInput, meta: { expertId?: string
       topic: input.topic,
       instructionSlug: input.instructionSlug,
       pathId: input.pathId,
-      context: `Czat z ekspertem${meta.instructionTitle ? ` · ${meta.instructionTitle}` : ""} · ${siteUrl()}/admin/czaty/${id}`.slice(0, 400),
+      context: `${label}${meta.instructionTitle ? ` · ${meta.instructionTitle}` : ""} · ${adminLink}`.slice(0, 400),
       contactConsent: true,
       startedAt: input.startedAt,
     },
     { userAgent: meta.userAgent },
   );
-  db.prepare(
-    `INSERT INTO chats (id, token_hash, created_at, updated_at, topic, partner, expert_id, instruction_slug, path_id, name, email, phone, marketing_consent, lead_id, user_seen_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    id,
-    hash(token),
-    now,
-    now,
-    cfg.topic,
-    cfg.partnerName,
-    meta.expertId ?? null,
-    input.instructionSlug ?? null,
-    input.pathId ?? null,
-    input.name,
-    input.email,
-    phone,
-    input.marketingConsent ? 1 : 0,
-    lead.ok ? lead.id : null,
-    now,
-  );
+  getDb()
+    .prepare(
+      `INSERT INTO chats (id, token_hash, created_at, updated_at, topic, partner, expert_id, instruction_slug, path_id, name, email, phone, marketing_consent, lead_id, user_seen_at, channel, subject)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      hash(token),
+      now,
+      now,
+      cfg.topic,
+      cfg.partnerName,
+      meta.expertId ?? null,
+      input.instructionSlug ?? null,
+      input.pathId ?? null,
+      input.name,
+      input.email,
+      phone,
+      input.marketingConsent ? 1 : 0,
+      lead.ok ? lead.id : null,
+      now,
+      channel,
+      input.subject ?? null,
+    );
   addMessage(id, "user", input.name, input.message);
-  addMessage(
-    id,
-    "system",
-    null,
-    `Wiadomość trafiła do: ${meta.expertName ?? "eksperta"}. Odpowiedź pojawi się w tym oknie. Jeśli zamkniesz stronę, a odpowiedź przyjdzie później, damy Ci znać SMS-em.`,
-  );
+
+  // powiadomienie eksperta e-mailem (odpowiedź „Odpowiedz” trafia wprost do użytkownika przy wiadomości e-mail)
+  const to = meta.expertEmail || mailConfig().fallbackTo;
+  const notice = to
+    ? await sendMail({
+        to,
+        subject: `${label}: ${input.subject ?? meta.instructionTitle ?? cfg.topic}`,
+        replyTo: channel === "email" ? input.email : undefined,
+        text: [
+          `${label} od: ${input.name} <${input.email}>${phone ? `, tel. ${phone}` : ""}`,
+          meta.instructionTitle ? `Instrukcja: ${meta.instructionTitle}` : "",
+          "",
+          input.message,
+          "",
+          `Odpowiedz w panelu: ${adminLink}`,
+        ]
+          .filter((l, i) => l || i > 1)
+          .join("\n"),
+      })
+    : { ok: false, status: "brak adresu eksperta (e-mail w /admin/eksperci)" };
+  getDb().prepare("UPDATE chats SET mail_status = ? WHERE id = ?").run(`powiadomienie eksperta: ${notice.status}`, id);
   return { ok: true as const, id, token };
+}
+
+/** Rozpoczęcie czatu. Bez automatycznych wiadomości – w oknie widać tylko to, co piszą ludzie. */
+export function startChat(input: ChatStartInput, meta: StartMeta) {
+  return createThread("chat", input, meta);
+}
+
+/** Wiadomość e-mail wysłana formularzem na stronie. Odpowiedź eksperta wychodzi e-mailem do użytkownika. */
+export function sendEmailMessage(input: EmailMessageInput, meta: StartMeta) {
+  return createThread("email", input, meta);
 }
 
 export function addMessage(chatId: string, author: ChatMessage["author"], authorName: string | null, body: string) {
@@ -150,14 +195,30 @@ export function deleteChat(id: string) {
 }
 
 /**
- * Odpowiedź eksperta. Jeśli użytkownika nie było na stronie od SMS_AFTER_MINUTES minut – SMS (o ile skonfigurowano bramkę).
- * Token rozmowy nie jest przechowywany jawnie, więc SMS zawiera link do instrukcji – rozmowa otworzy się na urządzeniu użytkownika.
+ * Odpowiedź eksperta.
+ * - wiadomość e-mail: odpowiedź wychodzi e-mailem do użytkownika (o ile skonfigurowano wysyłkę),
+ * - czat: jeśli użytkownika nie było na stronie od SMS_AFTER_MINUTES minut – SMS (o ile skonfigurowano bramkę).
+ *   Token rozmowy nie jest przechowywany jawnie, więc SMS zawiera link do instrukcji – rozmowa otworzy się na urządzeniu użytkownika.
  */
-export async function expertReply(chatId: string, authorName: string, body: string, fetchImpl: typeof fetch = fetch): Promise<{ sms: string }> {
+export async function expertReply(chatId: string, authorName: string, body: string, fetchImpl: typeof fetch = fetch): Promise<{ notice: string }> {
   const c = getChat(chatId);
-  if (!c) return { sms: "brak rozmowy" };
+  if (!c) return { notice: "brak rozmowy" };
   addMessage(chatId, "expert", authorName, body);
   markSeen(chatId, "admin");
+  if (c.channel === "email") {
+    const r = await sendMail(
+      {
+        to: c.email,
+        subject: `Re: ${c.subject ?? "Twoja wiadomość"} – InstrukcjePrawne.pl`,
+        replyTo: mailConfig().fallbackTo ?? undefined,
+        text: `${body}\n\n${authorName}\nInstrukcjePrawne.pl`,
+      },
+      fetchImpl,
+    );
+    const notice = r.ok ? `e-mail ${r.status}` : `${r.status} – odpowiedz ze swojej skrzynki`;
+    getDb().prepare("UPDATE chats SET mail_status = ? WHERE id = ?").run(notice, chatId);
+    return { notice };
+  }
   const seen = c.user_seen_at ? Date.parse(c.user_seen_at) : 0;
   const away = Date.now() - seen > smsAfterMinutes() * 60_000;
   let sms = "nie było potrzeby (użytkownik jest na stronie)";
@@ -180,5 +241,5 @@ export async function expertReply(chatId: string, authorName: string, body: stri
     }
   }
   getDb().prepare("UPDATE chats SET sms_status = ? WHERE id = ?").run(sms, chatId);
-  return { sms };
+  return { notice: `SMS: ${sms}` };
 }

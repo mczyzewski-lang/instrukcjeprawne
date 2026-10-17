@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ConfigRow } from "@/components/admin/StatusBadge";
-import { isProduction, openAiConfig, showUnreviewed, siteUrl, smsConfig } from "@/lib/config";
+import { isProduction, openAiConfig, showUnreviewed, siteUrl, smsConfig, mailConfig } from "@/lib/config";
 import { analyticsSummary } from "@/lib/repo/events";
 import { countQuestionsByStatus, listAdminInstructions } from "@/lib/repo/content";
 import { leadConfigState, listLeadConfigs, listLeads } from "@/lib/repo/leads";
@@ -47,6 +47,7 @@ export default function Dashboard() {
           <ConfigRow label="Sekret sesji (ADMIN_SESSION_SECRET)" ok={(process.env.ADMIN_SESSION_SECRET?.length ?? 0) >= 32} detail="Min. 32 znaki" />
           <ConfigRow label="OpenAI – generator ilustracji (OPENAI_API_KEY)" ok={oa.configured} detail={oa.configured ? `Model: ${oa.model}` : "Bez klucza strona używa biblioteki SVG"} />
           <ConfigRow label="Bramka SMS dla czatu (SMS_WEBHOOK_URL)" ok={smsConfig().configured} detail="POST JSON { to, message } – powiadomienie, gdy ekspert odpowie" />
+          <ConfigRow label="Wysyłka e-maili (RESEND_API_KEY, MAIL_FROM)" ok={mailConfig().configured} detail="powiadomienia ekspertów i odpowiedzi na wiadomości z formularza" />
           <ConfigRow label="Podpis webhooków (LEAD_WEBHOOK_SECRET)" ok={Boolean(process.env.LEAD_WEBHOOK_SECRET)} detail="Nagłówek x-ip-signature (HMAC SHA-256)" />
           {cfgs.map((c) => {
             const st = leadConfigState(c);

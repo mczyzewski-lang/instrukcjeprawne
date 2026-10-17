@@ -29,6 +29,7 @@ export async function POST(req: Request) {
   const r = await startChat(parsed.data, {
     expertId: ex?.expert.id,
     expertName: ex && !ex.placeholder ? ex.expert.name : undefined,
+    expertEmail: ex?.expert.email,
     instructionTitle: ins?.title,
     userAgent: req.headers.get("user-agent") ?? undefined,
   });

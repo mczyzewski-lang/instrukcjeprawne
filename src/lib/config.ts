@@ -85,6 +85,18 @@ export function smsConfig() {
   return { configured: Boolean(url), url: url ?? null, token: process.env.SMS_WEBHOOK_TOKEN ?? null };
 }
 
+/**
+ * Wysyłka e-maili (powiadomienia dla eksperta, odpowiedzi na wiadomości z formularza).
+ * Obsługiwany dostawca: Resend (RESEND_API_KEY + MAIL_FROM ze zweryfikowanej domeny).
+ * Brak = wiadomości zapisują się w panelu (/admin/czaty), ale nie wychodzą e-mailem.
+ */
+export function mailConfig() {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM;
+  const fallbackTo = process.env.MAIL_NOTIFY_TO || process.env.NEXT_PUBLIC_CONTACT_EMAIL || null;
+  return { configured: Boolean(key && from), apiKey: key ?? null, from: from ?? null, fallbackTo };
+}
+
 /** Po ilu minutach bez odpowiedzi eksperta wysyłamy SMS (gdy użytkownik nie jest już na stronie). */
 export function smsAfterMinutes(): number {
   const v = Number(process.env.SMS_AFTER_MINUTES);

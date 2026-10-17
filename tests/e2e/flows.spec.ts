@@ -85,36 +85,53 @@ test("checklista i PDF bez podawania e-maila", async ({ page, request }) => {
   expect((await full.body()).subarray(0, 4).toString()).toBe("%PDF");
 });
 
-test("chat z ekspertem: kolejne pytania, zgoda marketingowa po poprawnym e-mailu, wysłanie", async ({ page }) => {
+test("chat z ekspertem: dane w oknie czatu, zgoda marketingowa po poprawnym e-mailu, pytanie", async ({ page }) => {
   await page.goto("/instrukcje/jak-rozwiesc-sie-bez-konfliktu");
   const help = page.locator("#pomoc");
   await expect(help.getByText("Nie musisz wszystkiego robić samodzielnie.")).toBeVisible();
+  // czat widoczny od razu, z zakładkami
+  await expect(help.getByRole("tab", { name: "Chat z ekspertem" })).toHaveAttribute("aria-selected", "true");
+  await expect(help.getByRole("tab", { name: "Wyślij wiadomość e-mail" })).toBeVisible();
   await expect(help.getByText("odpowiada merytorycznie za ten dział")).toBeVisible();
-  await help.getByRole("button", { name: "Rozpocznij chat" }).click();
   await expect(help.getByText(/podmiot komercyjny \(Nowy Etap\)/)).toBeVisible();
-  await expect(help.getByText("Jak masz na imię?")).toBeVisible();
-  await help.getByRole("button", { name: "Dalej" }).click();
+  await expect(help.getByText("Żeby rozpocząć rozmowę, wpisz swoje dane")).toBeVisible();
+  await expect(help.getByText("Wiadomość automatyczna")).toHaveCount(0);
+  await help.getByRole("button", { name: "Przejdź do pytania" }).click();
   await expect(help.getByText("Podaj imię.")).toBeVisible();
   await help.getByLabel("Imię").fill("Ewa");
-  await help.getByRole("button", { name: "Dalej" }).click();
-  const email = help.getByLabel("E-mail");
+  const email = help.getByLabel("E-mail", { exact: true });
   await email.fill("ewa@przyklad");
   await expect(help.getByText(/Zgadzam się na otrzymywanie e-mailem/)).toHaveCount(0);
   await email.fill("ewa@przyklad.pl");
   await expect(help.getByText(/Zgadzam się na otrzymywanie e-mailem/)).toBeVisible();
-  await help.getByRole("button", { name: "Dalej" }).click();
-  await expect(help.getByText(/wyślemy Ci SMS/).first()).toBeVisible();
+  await expect(help.getByText(/wyślemy Ci SMS/)).toBeVisible();
   await expect(help.getByLabel("Prefiks kraju")).toHaveValue("+48");
-  await help.getByLabel("Numer telefonu").fill("600 100 200");
-  await help.getByRole("button", { name: "Dalej" }).click();
-  await help.getByLabel("Wiadomość").fill("Chcemy rozwieść się zgodnie, mamy jedno dziecko.");
+  await help.getByLabel("Telefon").fill("600 100 200");
+  await help.getByRole("button", { name: "Przejdź do pytania" }).click();
+  await expect(help.getByText("Napisz swoje pytanie")).toBeVisible();
+  await help.getByLabel("Twoje pytanie").fill("Chcemy rozwieść się zgodnie, mamy jedno dziecko.");
   await page.waitForTimeout(3100); // zabezpieczenie czasowe przed botami
   await help.getByRole("button", { name: "Wyślij" }).click();
-  await expect(help.getByText(/Odpowiedź pojawi się w tym oknie/)).toBeVisible();
   await expect(help.getByText("Chcemy rozwieść się zgodnie, mamy jedno dziecko.")).toBeVisible();
+  await expect(help.getByText(/Odpowiedź pojawi się tutaj/)).toBeVisible();
   // rozmowa wraca po odświeżeniu strony
   await page.reload();
   await expect(page.locator("#pomoc").getByText("Chcemy rozwieść się zgodnie, mamy jedno dziecko.")).toBeVisible();
+});
+
+test("wiadomość e-mail do eksperta wysyłana przez stronę", async ({ page }) => {
+  await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  const help = page.locator("#pomoc");
+  await help.getByRole("tab", { name: "Wyślij wiadomość e-mail" }).click();
+  await expect(help.locator('a[href^="mailto:"]')).toHaveCount(0);
+  await help.getByLabel("Imię").fill("Jan");
+  await help.getByLabel("E-mail", { exact: true }).fill("jan@przyklad.pl");
+  await expect(help.getByLabel("Temat")).toHaveValue(/^Pytanie: /);
+  await help.getByLabel("Wiadomość", { exact: true }).fill("Mam trzy chwilówki i komornika, od czego zacząć?");
+  await page.waitForTimeout(3100);
+  await help.getByRole("button", { name: "Wyślij wiadomość" }).click();
+  await expect(help.getByText("Wiadomość wysłana")).toBeVisible();
+  await expect(help.getByText("Odpowiedź przyjdzie na adres jan@przyklad.pl.")).toBeVisible();
 });
 
 test("pytanie: krótka odpowiedź, działania, link do instrukcji, źródła", async ({ page }) => {

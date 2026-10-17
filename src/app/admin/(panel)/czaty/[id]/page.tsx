@@ -19,7 +19,8 @@ export default async function ChatDetail({ params, searchParams }: { params: Pro
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="grid gap-4">
         <Link href="/admin/czaty" className="text-sm">← Wszystkie rozmowy</Link>
-        <h1 className="text-h2 font-extrabold">Rozmowa: {c.name}</h1>
+        <h1 className="text-h2 font-extrabold">{c.channel === "email" ? "Wiadomość e-mail" : "Czat"}: {c.name}</h1>
+        {c.subject && <p className="font-bold">Temat: {c.subject}</p>}
         {sp.info && <p role="status" className="text-sm font-bold">{sp.info}</p>}
         {sp.blad && <p role="alert" className="field-error">{sp.blad}</p>}
         <ol className="grid gap-3">
@@ -33,6 +34,7 @@ export default async function ChatDetail({ params, searchParams }: { params: Pro
         {c.status === "open" ? (
           <form action={replyChatAction} className="card grid gap-3 p-4">
             <input type="hidden" name="id" value={c.id} />
+            {c.channel === "email" && <p className="text-sm text-muted">Odpowiedź wyślemy e-mailem na adres {c.email}.</p>}
             <label><span className="field-label">Odpowiedź</span><textarea name="body" rows={5} required className="field-input" /></label>
             <label><span className="field-label">Podpis (kto odpowiada)</span><input name="as" defaultValue={defaultAs} placeholder="Imię i nazwisko eksperta" className="field-input" /></label>
             <button className="btn btn-primary justify-self-start">Wyślij odpowiedź</button>
@@ -47,7 +49,7 @@ export default async function ChatDetail({ params, searchParams }: { params: Pro
         <p>Zgoda marketingowa: <strong>{c.marketing_consent ? "tak" : "nie"}</strong></p>
         <p>Partner: {c.partner}<br />Instrukcja: {c.instruction_slug}<br />Droga: {c.path_id ?? "—"}</p>
         <p>Ekspert działu: {expert?.name ?? "—"}</p>
-        <p>Ostatnio na stronie: {c.user_seen_at?.slice(0, 16).replace("T", " ") ?? "—"}<br />SMS: {c.sms_status ?? "—"}</p>
+        <p>Ostatnio na stronie: {c.user_seen_at?.slice(0, 16).replace("T", " ") ?? "—"}<br />SMS: {c.sms_status ?? "—"}<br />E-mail: {c.mail_status ?? "—"}</p>
         <form action={chatStatusAction} className="flex flex-wrap gap-2">
           <input type="hidden" name="id" value={c.id} />
           <button name="op" value={c.status === "open" ? "close" : "open"} className="btn btn-secondary min-h-9 text-sm">{c.status === "open" ? "Zamknij rozmowę" : "Otwórz ponownie"}</button>

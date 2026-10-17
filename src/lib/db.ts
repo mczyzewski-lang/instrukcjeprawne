@@ -158,8 +158,17 @@ function open(): DatabaseSync {
   db.exec("PRAGMA busy_timeout = 10000;");
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA);
+  migrate(db);
   seed(db);
   return db;
+}
+
+/** Dodaje kolumny, które pojawiły się po pierwszym wdrożeniu (istniejące bazy na wolumenie). */
+function migrate(db: DatabaseSync) {
+  const cols = new Set((db.prepare("PRAGMA table_info(chats)").all() as { name: string }[]).map((c) => c.name));
+  if (!cols.has("channel")) db.exec("ALTER TABLE chats ADD COLUMN channel TEXT NOT NULL DEFAULT 'chat'");
+  if (!cols.has("subject")) db.exec("ALTER TABLE chats ADD COLUMN subject TEXT");
+  if (!cols.has("mail_status")) db.exec("ALTER TABLE chats ADD COLUMN mail_status TEXT");
 }
 
 /** Wgrywa brakujące treści startowe. Nigdy nie nadpisuje treści edytowanych w CMS. */
