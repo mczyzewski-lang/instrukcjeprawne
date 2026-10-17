@@ -26,14 +26,24 @@ export default function Privacy() {
           </p>
         </section>
         <section id="formularz">
-          <h2 className="text-xl font-extrabold">Formularz rozmowy z ekspertem</h2>
+          <h2 className="text-xl font-extrabold">Czat i wiadomość e-mail do eksperta</h2>
           <ul className="list-dash mt-3">
-            <li>Zbieramy: imię, numer telefonu, opcjonalnie e-mail oraz temat instrukcji i wybraną drogę.</li>
+            <li>Zbieramy: imię, adres e-mail, numer telefonu (w wiadomości e-mail – opcjonalnie), treść wiadomości oraz temat instrukcji i wybraną drogę.</li>
+            <li>Numer telefonu w czacie służy do wysłania SMS-a, gdy ekspert odpowie, a Ciebie nie będzie już na stronie.</li>
             <li>Cel: kontakt w sprawie, o którą prosisz (podstawa: Twoje żądanie i zgoda na kontakt).</li>
             <li>Odbiorca: współpracujący podmiot właściwy dla tematu ({partners.join(", ")}), który prowadzi rozmowę.</li>
             <li>Przechowywanie: do czasu obsługi zgłoszenia, nie dłużej niż 12 miesięcy, chyba że nawiążesz współpracę z partnerem.</li>
             <li>Masz prawo dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, wycofania zgody i skargi do Prezesa UODO.</li>
           </ul>
+        </section>
+        <section id="marketing">
+          <h2 className="text-xl font-extrabold">Informacje marketingowe e-mailem</h2>
+          <p className="mt-2">
+            Wysyłamy je tylko wtedy, gdy zaznaczysz osobną zgodę przy czacie lub wiadomości do eksperta. Zgoda jest dobrowolna – bez niej rozmowa z ekspertem
+            działa tak samo. Nadawcą jest {LEGAL_ENTITY.operator}, podstawą – Twoja zgoda (art. 6 ust. 1 lit. a RODO oraz przepisy Prawa komunikacji
+            elektronicznej). Zgodę możesz wycofać w każdej chwili, pisząc na {LEGAL_ENTITY.contactEmail} lub klikając link rezygnacji w wiadomości; nie wpływa to
+            na zgodność z prawem wysyłki dokonanej wcześniej. Dane do tego celu przechowujemy do wycofania zgody.
+          </p>
         </section>
         <section id="analityka">
           <h2 className="text-xl font-extrabold">Analityka</h2>

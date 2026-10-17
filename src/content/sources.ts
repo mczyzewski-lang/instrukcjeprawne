@@ -616,3 +616,6 @@ export const SOURCES = {
 export type SourceKey = keyof typeof SOURCES;
 
 export const pick = (...keys: SourceKey[]): SourceReference[] => keys.map((k) => SOURCES[k]);
+
+/** Helper do źródeł definiowanych lokalnie w pliku instrukcji (np. przy nowych instrukcjach). */
+export const source = r;

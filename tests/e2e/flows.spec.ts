@@ -93,6 +93,7 @@ test("chat z ekspertem: dane w oknie czatu, zgoda marketingowa po poprawnym e-ma
   await expect(help.getByRole("tab", { name: "Chat z ekspertem" })).toHaveAttribute("aria-selected", "true");
   await expect(help.getByRole("tab", { name: "Wyślij wiadomość e-mail" })).toBeVisible();
   await expect(help.getByText("odpowiada merytorycznie za ten dział")).toBeVisible();
+  await help.getByText("Kto prowadzi rozmowę i co dzieje się z danymi").click();
   await expect(help.getByText(/podmiot komercyjny \(Nowy Etap\)/)).toBeVisible();
   await expect(help.getByText("Żeby rozpocząć rozmowę, wpisz swoje dane")).toBeVisible();
   await expect(help.getByText("Wiadomość automatyczna")).toHaveCount(0);
@@ -101,9 +102,9 @@ test("chat z ekspertem: dane w oknie czatu, zgoda marketingowa po poprawnym e-ma
   await help.getByLabel("Imię").fill("Ewa");
   const email = help.getByLabel("E-mail", { exact: true });
   await email.fill("ewa@przyklad");
-  await expect(help.getByText(/Zgadzam się na otrzymywanie e-mailem/)).toHaveCount(0);
+  await expect(help.getByText(/Zgadzam się na otrzymywanie od .* informacji marketingowych/)).toHaveCount(0);
   await email.fill("ewa@przyklad.pl");
-  await expect(help.getByText(/Zgadzam się na otrzymywanie e-mailem/)).toBeVisible();
+  await expect(help.getByText(/Zgadzam się na otrzymywanie od .* informacji marketingowych/)).toBeVisible();
   await expect(help.getByText(/wyślemy Ci SMS/)).toBeVisible();
   await expect(help.getByLabel("Prefiks kraju")).toHaveValue("+48");
   await help.getByLabel("Telefon").fill("600 100 200");

@@ -71,4 +71,28 @@ export const LEAD_CONFIGURATIONS: LeadConfiguration[] = [
     visibleDisclosure: disclosure("współpracujący zespół ds. sankcji kredytu darmowego"),
     formConfiguration: { askEmail: true, contextLabel: "Koszty kredytu" },
   },
+  {
+    topic: "rodzina",
+    partnerName: "Nowy Etap",
+    partnerArea: "mediacje rodzinne, alimenty i kontakty z dzieckiem",
+    webhookEnv: "LEAD_WEBHOOK_NOWY_ETAP",
+    visibleDisclosure: disclosure("Nowy Etap"),
+    formConfiguration: { askEmail: true, contextLabel: "Alimenty i kontakty z dzieckiem" },
+  },
+  {
+    topic: "kredyt-chf",
+    partnerName: "Pravna",
+    partnerArea: "kredyty frankowe",
+    webhookEnv: "LEAD_WEBHOOK_PRAVNA_CHF",
+    visibleDisclosure: disclosure("Pravna"),
+    formConfiguration: { askEmail: true, contextLabel: "Kredyt we frankach" },
+  },
+  {
+    topic: "windykacja-faktur",
+    partnerName: "Pravna",
+    partnerArea: "odzyskiwanie należności firm",
+    webhookEnv: "LEAD_WEBHOOK_PRAVNA_WINDYKACJA",
+    visibleDisclosure: disclosure("Pravna"),
+    formConfiguration: { askEmail: true, contextLabel: "Niezapłacone faktury" },
+  },
 ];

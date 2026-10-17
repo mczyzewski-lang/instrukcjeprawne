@@ -36,14 +36,14 @@ export function CopyLink({ url, label, className = "" }: { url: string; label?: 
       <button
         type="button"
         onClick={copy}
-        className="no-print inline-flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-sm border border-line bg-white text-navy hover:border-navy"
+        className="no-print inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-muted opacity-70 hover:bg-canvas hover:text-navy hover:opacity-100 focus-visible:opacity-100"
         aria-label={copied ? "Skopiowano adres" : `Kopiuj adres: ${url}`}
         title={copied ? "Skopiowano" : "Kopiuj adres"}
       >
-        {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+        {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />}
       </button>
       <span role="status" className="sr-only">{copied ? "Adres skopiowany do schowka" : ""}</span>
-      {copied && <span aria-hidden="true" className="text-xs font-semibold text-muted">Skopiowano</span>}
+      {copied && <span aria-hidden="true" className="text-xs text-muted">skopiowano</span>}
     </span>
   );
 }

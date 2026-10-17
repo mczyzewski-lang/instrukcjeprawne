@@ -24,8 +24,8 @@ export function ExpertAvatar({ expert, size = 40 }: { expert: Expert; size?: num
   );
 }
 
-function PlaceholderNote() {
-  return <span className="ml-1 rounded-sm bg-gold-soft px-1.5 py-0.5 text-[0.7rem] font-semibold text-navy">dane eksperta do uzupełnienia</span>;
+function PlaceholderNote({ inline = true }: { inline?: boolean }) {
+  return <span className={`${inline ? "ml-1 " : ""}rounded-sm bg-gold-soft px-1.5 py-0.5 text-[0.7rem] font-semibold text-navy`}>dane eksperta do uzupełnienia</span>;
 }
 
 /** Krótka linijka pod nagłówkiem sekcji. */
@@ -44,29 +44,38 @@ export function ExpertByline({ expert, placeholder, label = "Merytorycznie nadzo
 
 /** Pełna informacja przy źródłach – kto odpowiada za treść. */
 export function ExpertCard({ expert, placeholder, reviewedAt }: { expert: Expert; placeholder: boolean; reviewedAt: string | null }) {
+  const facts: [string, string][] = [
+    ["Zakres", expert.role || "Nadzór merytoryczny nad działem"],
+    ["Weryfikacja", reviewedAt ? `ostatnia: ${reviewedAt.split("-").reverse().join(".")}` : "ta wersja czeka na weryfikację"],
+  ];
+  if (expert.affiliation) facts.push(["Powiązania", expert.affiliation]);
   return (
     <section aria-labelledby="ekspert-h" className="border-t border-line py-12 sm:py-16">
       <h2 id="ekspert-h" className="text-h2 font-extrabold">
         Kto odpowiada za tę instrukcję
       </h2>
-      <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-start">
-        <ExpertAvatar expert={expert} size={112} />
-        <div className="max-w-2xl">
-          <p className="text-xl font-extrabold">
-            {expert.name}
-            {placeholder && <PlaceholderNote />}
-          </p>
-          <p className="text-muted">{[expert.title, expert.role].filter(Boolean).join(" · ")}</p>
-          <p className="mt-4">{expert.bio}</p>
-          <ul className="list-dash mt-4 text-sm">
-            <li>Sprawdza poprawność merytoryczną instrukcji, ostrzeżeń i źródeł w tym dziale.</li>
-            <li>{reviewedAt ? `Ostatnia weryfikacja merytoryczna: ${reviewedAt.split("-").reverse().join(".")}.` : "Ta wersja instrukcji czeka jeszcze na weryfikację."}</li>
-            {expert.affiliation && <li>Powiązania: {expert.affiliation}</li>}
-          </ul>
-          <p className="mt-4 text-xs text-muted">
-            Ekspert nadzoruje treść instrukcji. Instrukcja nie jest indywidualną poradą, a czytanie jej nie oznacza nawiązania współpracy z ekspertem.
-          </p>
+      <div className="card mt-8 max-w-3xl p-5 sm:p-7">
+        <div className="flex items-center gap-4 sm:gap-5">
+          <ExpertAvatar expert={expert} size={80} />
+          <div className="min-w-0">
+            <p className="text-lg font-extrabold leading-snug sm:text-xl">{expert.name}</p>
+            {expert.title && <p className="text-sm text-muted">{expert.title}</p>}
+            {placeholder && <p className="mt-1.5"><PlaceholderNote inline={false} /></p>}
+          </div>
         </div>
+        {expert.bio && <p className="mt-5 max-w-prose">{expert.bio}</p>}
+        <dl className="mt-5 grid gap-x-6 gap-y-2 border-t border-line pt-5 text-sm sm:grid-cols-[7rem_1fr]">
+          {facts.map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="font-semibold">{k}</dt>
+              <dd className="text-muted">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-5 text-xs text-muted">
+          Sprawdza poprawność instrukcji, ostrzeżeń i źródeł w tym dziale. Instrukcja nie jest indywidualną poradą, a jej czytanie nie oznacza nawiązania
+          współpracy z ekspertem.
+        </p>
       </div>
     </section>
   );

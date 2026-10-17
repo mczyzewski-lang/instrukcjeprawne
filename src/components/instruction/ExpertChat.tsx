@@ -52,8 +52,14 @@ function Avatar({ expert, size = 40 }: { expert: ChatExpert | null; size?: numbe
   );
 }
 
-const MARKETING_TEXT =
-  "(Opcjonalnie) Zgadzam się na otrzymywanie e-mailem informacji o nowych instrukcjach i materiałach edukacyjnych InstrukcjePrawne.pl. Zgodę mogę w każdej chwili wycofać.";
+/** Operator serwisu (nadawca informacji marketingowych) – ta sama zmienna co w polityce prywatności. */
+const OPERATOR = process.env.NEXT_PUBLIC_OPERATOR_NAME || "operatora serwisu InstrukcjePrawne.pl";
+
+/**
+ * Zgoda na marketing e-mailowy (art. 6 ust. 1 lit. a RODO, art. 398 Prawa komunikacji elektronicznej).
+ * Dobrowolna: checkbox domyślnie odznaczony, niewymagany do rozmowy – dlatego bez dopisku „opcjonalnie”.
+ */
+const MARKETING_TEXT = `Zgadzam się na otrzymywanie od ${OPERATOR} na podany adres e-mail informacji marketingowych o nowych instrukcjach, poradnikach i materiałach edukacyjnych InstrukcjePrawne.pl. Zgodę mogę w każdej chwili wycofać – nie wpływa to na zgodność z prawem wysyłki dokonanej wcześniej.`;
 
 /**
  * Kontakt z ekspertem odpowiedzialnym merytorycznie za dział – dwie zakładki:
@@ -309,7 +315,9 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
         {emailValid && (
           <label className="mt-2 flex items-start gap-2.5 text-xs">
             <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-navy" />
-            <span>{MARKETING_TEXT}</span>
+            <span>
+              {MARKETING_TEXT} <a href="/polityka-prywatnosci#marketing" className="underline">Więcej</a>
+            </span>
           </label>
         )}
       </div>
@@ -340,6 +348,17 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
       Wysyłając, prosisz o kontakt w tej sprawie. Twoje dane i wiadomość otrzyma {partnerName}. Szczegóły w{" "}
       <a href="/polityka-prywatnosci#formularz" className="underline">polityce prywatności</a>.
     </p>
+  );
+
+  const aboutContact = (
+    <details className="mt-3 text-xs text-muted">
+      <summary className="cursor-pointer select-none font-semibold underline-offset-2 hover:underline">Kto prowadzi rozmowę i co dzieje się z danymi</summary>
+      <p className="mt-2">{disclosure}</p>
+      <p className="mt-1">
+        Wysyłając wiadomość, prosisz o kontakt w tej sprawie – Twoje dane i wiadomość otrzyma {partnerName}. Nie podawaj numerów dokumentów ani danych o
+        zdrowiu. Szczegóły w <a href="/polityka-prywatnosci#formularz" className="underline">polityce prywatności</a>.
+      </p>
+    </details>
   );
 
   const waitingForExpert = session && msgs.length > 0 && !msgs.some((m) => m.author === "expert");
@@ -388,7 +407,6 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
             </button>
           )}
         </div>
-        <p className="border-b border-line bg-canvas px-4 py-2 text-xs text-muted">{disclosure}</p>
 
         {tab === "chat" ? (
           <div className="flex min-h-[26rem] flex-col bg-canvas">
@@ -439,16 +457,31 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
             )}
 
             {(ready || session) && !closed && (
-              <form onSubmit={send} noValidate className="mt-auto grid gap-2 border-t border-line bg-white p-3">
+              <form onSubmit={send} noValidate className="mt-auto border-t border-line bg-white p-3">
                 <label htmlFor={`${ids}-msg`} className="sr-only">Twoje pytanie</label>
-                <div className="flex items-end gap-2">
-                  <textarea id={`${ids}-msg`} ref={composerRef} rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={session ? "Napisz wiadomość…" : "Opisz krótko swoją sprawę"} className="field-input resize-y" disabled={sending} aria-invalid={Boolean(error)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); (e.currentTarget.form as HTMLFormElement).requestSubmit(); } }} />
-                  <button className="btn btn-primary shrink-0 px-4" disabled={sending} aria-label="Wyślij"><Send className="h-4 w-4" aria-hidden="true" /></button>
+                <div className="flex items-end gap-2 rounded-md border-2 border-line bg-white p-1.5 focus-within:border-navy">
+                  <textarea
+                    id={`${ids}-msg`}
+                    ref={composerRef}
+                    rows={1}
+                    value={text}
+                    onChange={(e) => {
+                      setText(e.target.value);
+                      // pole rośnie razem z tekstem (do ok. 6 linii), zamiast przesuwać układ
+                      e.currentTarget.style.height = "auto";
+                      e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 160)}px`;
+                    }}
+                    placeholder={session ? "Napisz wiadomość…" : "Opisz krótko swoją sprawę"}
+                    className="block max-h-40 min-h-10 w-full flex-1 resize-none bg-transparent px-2 py-2 text-base leading-6 outline-none"
+                    disabled={sending}
+                    aria-invalid={Boolean(error)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); (e.currentTarget.form as HTMLFormElement).requestSubmit(); } }}
+                  />
+                  <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-navy text-white hover:bg-navy-soft disabled:opacity-55" disabled={sending} aria-label="Wyślij">
+                    <Send className="h-4 w-4" aria-hidden="true" />
+                  </button>
                 </div>
-                {!session && privacy}
-                {!session && <p className="text-xs text-muted">Nie podawaj numerów dokumentów ani danych o zdrowiu – szczegóły omówisz z ekspertem.</p>}
-                {error && <p role="alert" className="field-error">{error}</p>}
+                {error && <p role="alert" className="field-error mt-2">{error}</p>}
               </form>
             )}
             {closed && <p className="mt-auto border-t border-line bg-white p-3 text-center text-sm text-muted">Rozmowa została zamknięta. Nową rozpoczniesz po kliknięciu „Zakończ na tym urządzeniu”.</p>}
@@ -492,6 +525,7 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
           </div>
         )}
       </div>
+      {tab === "chat" && aboutContact}
     </div>
   );
 }
