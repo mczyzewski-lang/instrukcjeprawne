@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SEED_INSTRUCTIONS } from "@/content";
-import { buildPlan, decodePlan, encodePlan, planTitle } from "@/lib/plan";
+import { buildPlan, decodePlan, encodePlan, planFileTitle, planTitle } from "@/lib/plan";
 
 const ins = SEED_INSTRUCTIONS.find((i) => i.slug === "co-zrobic-gdy-komornik-zajal-konto")!;
 
@@ -37,6 +37,7 @@ describe("Plan …", () => {
     const firstDoc = ins.paths.find((p) => p.id === "skarga")!.documents[0].id;
     const plan = buildPlan(ins, { s: { "q-pismo": 1 }, o: answers, p: "skarga", d: [firstDoc], n: "Ewa", t: "now", ds: "yes", dl: "2026-10-24", g: "2026-10-17" });
     expect(plan.heading).toBe("Plan działania wobec komornika – Ewa");
+    expect(planFileTitle(plan)).toBe("Plan działania wobec komornika – Ewa (17.10.26)");
     expect(plan.goal.length).toBeGreaterThan(5);
     expect(plan.startDate).toBe("2026-10-17");
     expect(plan.deadline).toEqual({ date: "2026-10-24", daysLeft: 7 });

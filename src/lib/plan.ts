@@ -67,6 +67,8 @@ export interface Plan {
   heading: string;
   instructionTitle: string;
   slug: string;
+  /** data przygotowania planu (RRRR-MM-DD) */
+  createdAt: string;
   pathId: string;
   pathName: string;
   /** cel – co daje ta droga */
@@ -279,6 +281,7 @@ export function buildPlan(ins: Instruction, input: PlanInput): Plan {
     heading: input.n ? `${title} – ${input.n}` : title,
     instructionTitle: ins.title,
     slug: ins.slug,
+    createdAt: fromDays(today),
     pathId: path.id,
     pathName: path.name,
     goal: path.benefits[0] ?? ins.shortDescription,
@@ -301,5 +304,11 @@ export function buildPlan(ins: Instruction, input: PlanInput): Plan {
     doneCount: all.filter((i) => i.done).length,
   };
 }
+
+/** nazwa pliku planu, np. „Plan rozwodu – Marek (17.10.26)” */
+export const planFileTitle = (plan: Pick<Plan, "heading" | "createdAt">) => {
+  const [y, m, d] = plan.createdAt.split("-");
+  return `${plan.heading} (${d}.${m}.${y.slice(2)})`;
+};
 
 export const planPdfHref = (slug: string, code: string) => `/instrukcje/${slug}/plan?d=${code}`;

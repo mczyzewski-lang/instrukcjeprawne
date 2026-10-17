@@ -428,7 +428,6 @@ export async function planPdf(ins: Instruction, plan: Plan, opts: { url: string;
   sectionTitle(doc, "?", "Jak chcesz działać dalej?", "Plan jest Twój bez względu na wybór.");
   bullets(doc, [
     "Samodzielnie – odhaczaj zadania z tego planu, zaczynając od etapu 1.",
-    `Z bezpłatną pomocą – ${plan.freeHelp.slice(0, 2).map((h) => h.name + (h.phone ? ` (tel. ${h.phone})` : "")).join("; ") || "nieodpłatna pomoc prawna w Twoim powiecie"}. Weź ten plan na spotkanie.`,
     `Z ekspertem – omów plan bezpłatnie na ${opts.url} (sekcja „Potrzebujesz pomocy?”). Pierwsza rozmowa do niczego nie zobowiązuje.`,
   ], { size: 10 });
   doc.moveDown(1);

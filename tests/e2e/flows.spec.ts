@@ -240,8 +240,13 @@ test("linki zewnętrzne nie wyprowadzają ze strony – adres można skopiować"
 
 test("Plan: kreator pytań w okienku, plan z celem i etapami, PDF i omówienie z ekspertem", async ({ page, request }) => {
   await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  // odpowiedź z sekcji A nie jest zadawana drugi raz w kreatorze
+  const firstQ = page.locator('section[aria-labelledby="sekcja-a"] ol > li').first();
+  const firstQText = (await firstQ.locator("p").first().innerText()).replace(/^\d+\s*/, "");
+  await firstQ.getByRole("button", { name: "Tak" }).click();
   await page.getByRole("button", { name: "Wygeneruj bezpłatnie Plan oddłużenia" }).last().click();
   const plan = page.getByRole("dialog");
+  await expect(plan.getByText(firstQText, { exact: true })).toHaveCount(0);
   // 1. sytuacja
   await expect(plan.getByRole("heading", { name: "Twoja sytuacja" })).toBeVisible();
   await plan.getByRole("button", { name: "Tak" }).first().click();
@@ -270,6 +275,7 @@ test("Plan: kreator pytań w okienku, plan z celem i etapami, PDF i omówienie z
   await expect(plan.getByText("Ustal, czy w sprawie biegnie termin").first()).toBeVisible();
   await expect(plan.getByRole("heading", { name: "Jak chcesz działać dalej?" })).toBeVisible();
   await expect(plan.getByText("Koniec planu")).toBeVisible();
+  await expect(plan.getByText("Z bezpłatną pomocą", { exact: true })).toHaveCount(0);
   // przyklejony pasek okna
   await expect(plan.getByRole("button", { name: "Omów bezpłatnie Plan oddłużenia z ekspertem" })).toBeVisible();
 
@@ -291,7 +297,7 @@ test("Plan: kreator pytań w okienku, plan z celem i etapami, PDF i omówienie z
   await expect(page.getByRole("dialog")).toBeHidden();
   const help = page.locator("#pomoc");
   await expect(help.getByText("Do pierwszej wiadomości dołączymy:")).toBeVisible();
-  await expect(help.getByRole("link", { name: "Plan oddłużenia.pdf" })).toBeVisible();
+  await expect(help.getByRole("link", { name: /^Plan oddłużenia – Ola \(\d\d\.\d\d\.\d\d\)\.pdf$/ })).toBeVisible();
   await help.getByLabel("Imię", { exact: true }).fill("Ola");
   await help.getByLabel("E-mail", { exact: true }).fill("ola@przyklad.pl");
   await help.getByLabel("Telefon").fill("600 200 300");
@@ -299,5 +305,5 @@ test("Plan: kreator pytań w okienku, plan z celem i etapami, PDF i omówienie z
   await expect(help.getByLabel("Twoje pytanie")).toHaveValue(/w załączeniu mój Plan oddłużenia/);
   await page.waitForTimeout(3100);
   await help.getByRole("button", { name: "Wyślij" }).click();
-  await expect(help.getByRole("log").getByRole("link", { name: "Plan oddłużenia.pdf" })).toBeVisible();
+  await expect(help.getByRole("log").getByRole("link", { name: /^Plan oddłużenia – Ola \(\d\d\.\d\d\.\d\d\)\.pdf$/ })).toBeVisible();
 });

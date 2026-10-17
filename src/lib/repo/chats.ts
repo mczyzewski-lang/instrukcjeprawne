@@ -3,7 +3,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { mailConfig, siteUrl, smsAfterMinutes, smsConfig } from "../config";
 import { getDb } from "../db";
 import { sendMail } from "../mailer";
-import { buildPlan, decodePlan, planPdfHref } from "../plan";
+import { buildPlan, decodePlan, planFileTitle, planPdfHref } from "../plan";
 import type { Instruction } from "../types";
 import type { ChatStartInput, EmailMessageInput } from "../schemas";
 import { createLead, getLeadConfig } from "./leads";
@@ -189,7 +189,7 @@ export function planAttachment(ins: Instruction | null | undefined, code: string
   const input = decodePlan(code);
   if (!input) return null;
   const plan = buildPlan(ins, input);
-  return { type: "plan", title: plan.title, href: planPdfHref(ins.slug, code), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` };
+  return { type: "plan", title: planFileTitle(plan), href: planPdfHref(ins.slug, code), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` };
 }
 
 export function markSeen(chatId: string, who: "user" | "admin") {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { siteUrl } from "@/lib/config";
 import { planPdf } from "@/lib/pdf";
-import { buildPlan, decodePlan, planPdfHref } from "@/lib/plan";
+import { buildPlan, decodePlan, planFileTitle, planPdfHref } from "@/lib/plan";
 import { getPublicInstruction } from "@/lib/repo/content";
 
 export const runtime = "nodejs";
@@ -16,11 +16,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   if (!input || !code) return NextResponse.json({ error: "Niepoprawny kod planu" }, { status: 400 });
   const plan = buildPlan(v.doc, input);
   const buf = await planPdf(v.doc, plan, { url: `${siteUrl()}/instrukcje/${slug}`, planUrl: `${siteUrl()}${planPdfHref(slug, code)}` });
-  const name = `${plan.title.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/[^a-z0-9]+/g, "-")}.pdf`;
+  const title = planFileTitle(plan);
+  const ascii = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[łŁ]/g, "l").replace(/[^A-Za-z0-9().-]+/g, "-");
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "content-type": "application/pdf",
-      "content-disposition": `inline; filename="${name}"`,
+      "content-disposition": `inline; filename="${ascii}.pdf"; filename*=UTF-8''${encodeURIComponent(`${title}.pdf`)}`,
       "cache-control": "private, max-age=300",
       "x-robots-tag": "noindex",
     },

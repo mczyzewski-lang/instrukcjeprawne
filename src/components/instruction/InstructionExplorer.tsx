@@ -7,7 +7,7 @@ import { StepNumber } from "@/components/ui/StepNumber";
 import { store, track } from "@/lib/analytics-client";
 import { PATH_KIND_LABEL, type Instruction, type Path } from "@/lib/types";
 import { DecisionTree } from "./DecisionTree";
-import { buildPlan, encodePlan, planPdfHref, planTitle, type PlanInput } from "@/lib/plan";
+import { buildPlan, encodePlan, planFileTitle, planPdfHref, planTitle, type PlanInput } from "@/lib/plan";
 import { ExpertChat, type ChatAttachment, type ChatExpert } from "./ExpertChat";
 import { PlanModal } from "./PlanModal";
 import { PlanPanel } from "./PlanPanel";
@@ -170,8 +170,8 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
 
   const discussPlan = (e?: React.MouseEvent<HTMLElement>) => {
     if (!plan) return;
-    void flyPlanToChat(e?.currentTarget.getBoundingClientRect() ?? null, plan.title);
-    setAttachment({ title: plan.title, code: planCode, href: planPdfHref(ins.slug, planCode), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` });
+    void flyPlanToChat(e?.currentTarget.getBoundingClientRect() ?? null, planFileTitle(plan));
+    setAttachment({ title: planFileTitle(plan), planTitle: plan.title, code: planCode, href: planPdfHref(ins.slug, planCode), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` });
     track("plan_discuss_clicked", { instructionSlug: ins.slug, pathId: plan.pathId });
     setModal(null);
     openExpert("plan");

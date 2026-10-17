@@ -17,7 +17,8 @@ interface Props {
   onDone: (cfg: PlanConfig, docs: string[]) => void;
 }
 
-const STEPS = ["Twoja sytuacja", "Twoja sprawa", "Droga", "Dokumenty", "Termin"] as const;
+type StepKey = "sytuacja" | "sprawa" | "droga" | "dokumenty" | "termin";
+const STEP_TITLE: Record<StepKey, string> = { sytuacja: "Twoja sytuacja", sprawa: "Twoja sprawa", droga: "Droga", dokumenty: "Dokumenty", termin: "Termin" };
 
 function Choice({ name, value, current, onChange, label, hint }: { name: string; value: string; current: string | undefined; onChange: (v: string) => void; label: string; hint?: string }) {
   const on = current === value;
@@ -40,6 +41,16 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
   const ids = useId();
   const [step, setStep] = useState(0);
   const [cfg, setCfg] = useState<PlanConfig>(initial);
+  // nie pytamy drugi raz o to, na co odpowiedź już padła na stronie (sekcja A, drzewo decyzji)
+  const [pendingQs] = useState(() => ins.situationQuestions.filter((q) => initial.s[q.id] === undefined));
+  const [STEPS] = useState<StepKey[]>(() => [
+    ...(pendingQs.length ? (["sytuacja"] as const) : []),
+    ...(resolve(ins.decisionTree, initial.o).complete ? [] : (["sprawa"] as const)),
+    "droga",
+    "dokumenty",
+    "termin",
+  ]);
+  const cur = STEPS[step];
   const [docs, setDocs] = useState<string[]>(initialDocs);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const tree = useMemo(() => resolve(ins.decisionTree, cfg.o), [ins.decisionTree, cfg.o]);
@@ -66,7 +77,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
       <div className="border-b border-line px-5 py-5 sm:px-7">
         <p className="eyebrow">Krok {step + 1} z {STEPS.length}</p>
         <h3 ref={headingRef} tabIndex={-1} data-autofocus className="mt-1 text-2xl font-extrabold outline-none">
-          {STEPS[step]}
+          {STEP_TITLE[cur]}
         </h3>
         <div className="mt-4 flex items-center gap-3" aria-hidden="true">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
@@ -82,10 +93,10 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
       </div>
 
       <div className="flex-1 px-5 py-6 sm:px-7">
-        {step === 0 && (
+        {cur === "sytuacja" && (
           <div className="grid gap-3">
             <p className="text-sm text-muted">Zaznacz, co pasuje do Ciebie. Na tej podstawie ustawimy kolejność zadań.</p>
-            {ins.situationQuestions.map((q) => (
+            {pendingQs.map((q) => (
               <fieldset key={q.id} className="rounded-md border border-line bg-white p-4">
                 <legend className="sr-only">{q.question}</legend>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -111,7 +122,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
           </div>
         )}
 
-        {step === 1 && (
+        {cur === "sprawa" && (
           <div>
             {!tree.complete && tree.node ? (
               <fieldset>
@@ -164,7 +175,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
           </div>
         )}
 
-        {step === 2 && (
+        {cur === "droga" && (
           <div className="grid gap-2" role="radiogroup" aria-label="Droga w planie">
             <p className="mb-1 text-sm text-muted">{suggested.length ? "Zaznaczyliśmy drogę, która najlepiej pasuje do odpowiedzi. Możesz wybrać inną." : "Wybierz drogę, którą chcesz zaplanować."}</p>
             {ins.paths.map((p) => (
@@ -181,7 +192,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
           </div>
         )}
 
-        {step === 3 && (
+        {cur === "dokumenty" && (
           <div>
             <p className="text-sm text-muted">Droga: {path.name}. Zaznacz dokumenty, które już masz – w planie zostaną tylko brakujące.</p>
             {path.documents.length === 0 ? (
@@ -204,7 +215,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
           </div>
         )}
 
-        {step === 4 && (
+        {cur === "termin" && (
           <div className="grid gap-6">
             <fieldset className="grid gap-2">
               <legend className="mb-1 font-extrabold">Czy w Twojej sprawie biegnie jakiś termin?</legend>
@@ -273,7 +284,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
         <button type="button" className="btn btn-primary ml-auto" onClick={next}>
           {last ? "Utwórz mój plan" : "Dalej"} <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
-        {step === 1 && !tree.complete && <p className="w-full text-xs text-muted">Możesz pominąć pytania – plan będzie wtedy mniej dokładny.</p>}
+        {cur === "sprawa" && !tree.complete && <p className="w-full text-xs text-muted">Możesz pominąć pytania – plan będzie wtedy mniej dokładny.</p>}
       </div>
     </div>
   );

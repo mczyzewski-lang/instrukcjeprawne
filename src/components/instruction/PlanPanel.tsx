@@ -1,7 +1,6 @@
 "use client";
 
-import { CalendarDays, Check, Download, MessageCircle, Pencil, Phone } from "lucide-react";
-import { CopyLink } from "@/components/ui/CopyLink";
+import { CalendarDays, Check, Download, MessageCircle, Pencil } from "lucide-react";
 import { EXPERT_VALUE, formatPlDate, type Plan, type PlanItem } from "@/lib/plan";
 
 interface Props {
@@ -168,30 +167,13 @@ export function PlanPanel({ plan, pdfHref, isDone, toggle, onEdit, onDiscuss, on
             Jak chcesz działać dalej?
           </h4>
           <p className="mt-1 text-sm text-muted">Plan jest Twój bez względu na wybór. Każda z tych dróg jest w porządku.</p>
-          <div className={`mt-5 grid gap-3 ${onDiscuss ? "lg:grid-cols-3" : "sm:grid-cols-2"}`}>
+          <div className={`mt-5 grid gap-3 ${onDiscuss ? "sm:grid-cols-2" : ""}`}>
             <div className="card flex flex-col p-4">
               <p className="font-extrabold">Samodzielnie</p>
               <p className="mt-1 flex-1 text-sm text-muted">Masz wszystko w tym planie. Pobierz go jako PDF i odhaczaj zadania – postęp zapamiętamy na tym urządzeniu.</p>
               <a href={pdfHref} target="_blank" rel="noopener" className="btn btn-secondary mt-3 min-h-10 px-3 text-sm" onClick={onPdf}>
                 <Download className="h-4 w-4" aria-hidden="true" /> Pobierz plan (PDF)
               </a>
-            </div>
-            <div className="card flex flex-col p-4">
-              <p className="font-extrabold">Z bezpłatną pomocą</p>
-              <p className="mt-1 text-sm text-muted">Weź ten plan na spotkanie – łatwiej opiszesz sprawę.</p>
-              <ul className="mt-2 grid flex-1 gap-2 text-sm">
-                {plan.freeHelp.slice(0, 3).map((h) => (
-                  <li key={h.name}>
-                    <span className="block font-semibold">{h.name}</span>
-                    {h.phone && (
-                      <a href={`tel:${h.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" aria-hidden="true" /> {h.phone}
-                      </a>
-                    )}
-                    {h.url && <CopyLink url={h.url} label={new URL(h.url).hostname.replace(/^www\./, "")} className="text-muted" />}
-                  </li>
-                ))}
-              </ul>
             </div>
             {onDiscuss && (
               <div className="flex flex-col rounded-md border-2 border-navy bg-white p-4">

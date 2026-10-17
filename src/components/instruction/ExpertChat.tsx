@@ -29,7 +29,10 @@ interface Props {
 }
 
 export interface ChatAttachment {
+  /** nazwa pliku bez .pdf, np. „Plan rozwodu – Marek (17.10.26)” */
   title: string;
+  /** sama nazwa planu do treści wiadomości, np. „Plan rozwodu” */
+  planTitle?: string;
   /** kod planu (z niego serwer odtwarza plan i PDF) */
   code: string;
   href: string;
@@ -155,8 +158,8 @@ export function ExpertChat({ topic, partnerName, disclosure, instructionSlug, in
   useEffect(() => {
     if (!attachment) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reakcja na dołączenie planu w innym miejscu strony
-    setText((t) => t || `Dzień dobry, w załączeniu mój ${attachment.title}. Chcę go omówić – od czego zacząć w mojej sytuacji?`);
-    setMailBody((t) => t || `Dzień dobry, w załączeniu mój ${attachment.title}. Chcę go omówić – od czego zacząć w mojej sytuacji?`);
+    setText((t) => t || `Dzień dobry, w załączeniu mój ${attachment.planTitle ?? attachment.title}. Chcę go omówić – od czego zacząć w mojej sytuacji?`);
+    setMailBody((t) => t || `Dzień dobry, w załączeniu mój ${attachment.planTitle ?? attachment.title}. Chcę go omówić – od czego zacząć w mojej sytuacji?`);
   }, [attachment]);
 
   // przywrócenie rozmowy z tej przeglądarki
