@@ -51,3 +51,17 @@ describe("rozdzielenie szkiców i treści zatwierdzonych", () => {
     expect(r.ok).toBe(false);
   });
 });
+
+describe("poprawki treści startowych", () => {
+  it("instrukcje rodzinne nie zaczynają od przemocy (tylko element awaryjny na końcu)", async () => {
+    const { SEED_INSTRUCTIONS } = await import("@/content");
+    for (const slug of ["jak-rozwiesc-sie-bez-konfliktu", "kontakty-z-dzieckiem-po-rozstaniu"]) {
+      const ins = SEED_INSTRUCTIONS.find((i) => i.slug === slug)!;
+      const first = ins.decisionTree.nodes.find((n) => n.id === ins.decisionTree.startNodeId)!;
+      expect(first.question).not.toMatch(/przemoc/i);
+      expect(ins.situationQuestions.some((q) => /przemoc|boisz/i.test(q.question))).toBe(false);
+      expect(ins.urgent?.title ?? "").not.toMatch(/przemoc/i);
+      expect(ins.warnings.filter((w) => w.severity === "urgent" && /przemoc/i.test(w.title + w.body))).toEqual([]);
+    }
+  });
+});

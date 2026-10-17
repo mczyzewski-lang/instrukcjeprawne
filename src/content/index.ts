@@ -43,6 +43,17 @@ export const SEED_INSTRUCTIONS: Instruction[] = [
   naruszenieMarki,
 ];
 
+/**
+ * Poprawki treści startowych po pierwszym wdrożeniu: id instrukcji → numer wersji.
+ * Przy starcie aplikacji nieopublikowana i nieedytowana w CMS wersja w bazie zostaje zastąpiona nową.
+ * Zwiększ numer, gdy poprawiasz treść instrukcji w src/content.
+ */
+export const SEED_REVISIONS: Record<string, number> = {
+  rozwod: 2,
+  "kontakty-dziecko": 2,
+  alimenty: 2,
+};
+
 /** Kolejność na stronie głównej. */
 export const FEATURED_SLUGS = [
   "jak-wyjsc-z-dlugow",

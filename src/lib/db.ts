@@ -4,7 +4,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { LEAD_CONFIGURATIONS } from "@/content/categories";
 import { SEED_EXPERTS } from "@/content/experts";
-import { SEED_INSTRUCTIONS, SEED_QUESTIONS } from "@/content";
+import { SEED_INSTRUCTIONS, SEED_QUESTIONS, SEED_REVISIONS } from "@/content";
 
 /**
  * Relacyjna baza SQLite (wbudowany moduł node:sqlite – bez natywnych zależności).
@@ -199,6 +199,20 @@ function seed(db: DatabaseSync) {
   try {
     for (const i of SEED_INSTRUCTIONS) insIns.run(i.id, i.slug, i.editorialStatus, i.category, JSON.stringify(i), now);
     for (const i of SEED_INSTRUCTIONS) if (i.planName) fillPlanName.run(i.planName, i.planName, i.id);
+    // poprawione treści startowe – tylko gdy w bazie jest nieopublikowana wersja startowa, nieedytowana w CMS
+    // (CMS przy zapisie ustawia updatedAt na dzień edycji, wersja startowa ma updatedAt = researchedAt)
+    for (const i of SEED_INSTRUCTIONS) {
+      const rev = SEED_REVISIONS[i.id];
+      if (!rev) continue;
+      const key = `seed-rev:${i.id}`;
+      const cur = Number((db.prepare("SELECT json FROM settings WHERE key = ?").get(key) as { json: string } | undefined)?.json ?? 1);
+      if (cur >= rev) continue;
+      db.prepare(
+        `UPDATE instructions SET draft_json = ?, updated_at = ? WHERE id = ? AND published_json IS NULL
+           AND json_extract(draft_json, '$.updatedAt') = json_extract(draft_json, '$.researchedAt')`,
+      ).run(JSON.stringify(i), now, i.id);
+      db.prepare("INSERT INTO settings (key, json, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET json = excluded.json, updated_at = excluded.updated_at").run(key, String(rev), now);
+    }
     for (const q of SEED_QUESTIONS) insQ.run(q.id, q.slug, q.status, q.category, q.title, q.priority ?? null, JSON.stringify(q), now);
     for (const q of SEED_QUESTIONS) if (q.status !== "draft") upgradeQ.run(q.status, q.title, JSON.stringify(q), now, q.id);
     for (const l of LEAD_CONFIGURATIONS) insLead.run(l.topic, JSON.stringify(l));

@@ -18,36 +18,17 @@ export const rozwod = defineInstruction({
   legalReviewedAt: null,
   editorialStatus: "review",
   aiAssisted: true,
-  urgent: {
-    title: "Jeśli w Twoim domu jest przemoc",
-    items: [
-      "Twoje bezpieczeństwo jest najważniejsze. W sytuacji zagrożenia dzwoń pod 112.",
-      "Pogotowie „Niebieska Linia”: 800 120 002 – bezpłatnie i całodobowo.",
-      "Mediacja przy przemocy jest niewłaściwa – nie daje równych szans obu stronom.",
-    ],
-  },
   situationQuestions: [
     { id: "q-oboje", question: "Czy oboje chcecie rozwodu?", ifYes: "Możecie złożyć zgodne żądanie rozwodu bez orzekania o winie – to zwykle najszybsza droga.", ifNo: "Sprawa może być dłuższa. Mediacja może pomóc w ustaleniu choć części spraw." },
     { id: "q-dzieci", question: "Czy macie wspólne małoletnie dzieci?", ifYes: "Sąd w wyroku rozstrzygnie o władzy rodzicielskiej, kontaktach i alimentach. Wasze porozumienie bardzo pomaga.", ifNo: "Sprawa jest zwykle prostsza." },
     { id: "q-majatek", question: "Czy macie wspólny majątek do podziału?", ifYes: "Podział majątku to osobna kwestia – możecie go ustalić umową, w sądzie przy rozwodzie (gdy nie przedłuży sprawy) albo później.", ifNo: "Jedna sprawa mniej do ustalenia." },
-    { id: "q-przemoc", question: "Czy w związku jest przemoc lub boisz się drugiej osoby?", ifYes: "Mediacja nie jest dla Ciebie. Skorzystaj z pomocy specjalistów i powiedz o tym sądowi.", ifNo: "Rozmowa, także z mediatorem, może skrócić sprawę." },
   ],
   decisionTree: {
     id: `${ID}-drzewo`,
     title: "Sprawdź, jaka droga może pasować do Waszej sytuacji",
     intro: "4 pytania. Wynik pokazuje, co warto przygotować. To nie zastępuje oceny sądu.",
-    startNodeId: "n-bezpieczenstwo",
+    startNodeId: "n-zgoda",
     nodes: [
-      {
-        id: "n-bezpieczenstwo",
-        question: "Czy w związku jest przemoc albo boisz się drugiej osoby?",
-        help: "Przemoc to nie tylko bicie – także zastraszanie, kontrola finansów, groźby.",
-        options: [
-          { id: "o-przemoc-tak", label: "Tak", outcomeIds: ["r-przemoc", "r-sad-bez-mediacji"] },
-          { id: "o-przemoc-nie", label: "Nie", nextNodeId: "n-zgoda" },
-          { id: "o-przemoc-nie-wiem", label: "Nie chcę odpowiadać", outcomeIds: ["r-przemoc-info"], nextNodeId: "n-zgoda" },
-        ],
-      },
       {
         id: "n-zgoda",
         question: "Czy oboje chcecie rozwodu?",
@@ -76,9 +57,6 @@ export const rozwod = defineInstruction({
       },
     ],
     outcomes: [
-      { id: "r-przemoc", title: "Najpierw bezpieczeństwo", description: "Zadzwoń do Niebieskiej Linii (800 120 002) lub w zagrożeniu pod 112. Możesz też zgłosić się na policję lub do ośrodka pomocy społecznej.", pathIds: ["przemoc"], urgent: true, priority: 0 },
-      { id: "r-przemoc-info", title: "Jeśli kiedykolwiek poczujesz się zagrożony/a", description: "Pomoc jest dostępna całodobowo: Niebieska Linia 800 120 002, w zagrożeniu 112.", pathIds: ["przemoc"], priority: 90 },
-      { id: "r-sad-bez-mediacji", title: "Rozwód w sądzie – bez mediacji", description: "Poinformuj sąd o przemocy. Możesz wnioskować o zabezpieczenie (np. kontaktów, alimentów) na czas sprawy.", pathIds: ["brak-zgody", "dzieci"], urgent: true, priority: 1 },
       { id: "r-bez-winy", title: "Zgodny rozwód bez orzekania o winie", description: "Gdy oboje chcecie rozwodu i nie żądacie orzekania o winie, sprawa jest zwykle krótsza. Połowa opłaty od pozwu wraca po uprawomocnieniu wyroku.", pathIds: ["porozumienie", "bez-winy"], priority: 10 },
       { id: "r-mediacja", title: "Mediacja w spornych sprawach", description: "Mediator pomaga ustalić to, w czym się nie zgadzacie (dzieci, alimenty, mieszkanie, majątek). Nie orzeka rozwodu – robi to sąd.", pathIds: ["mediacja"], priority: 20 },
       { id: "r-brak-zgody", title: "Gdy druga osoba nie chce rozwodu", description: "Sąd może orzec rozwód także bez zgody drugiej strony, jeśli rozkład pożycia jest zupełny i trwały. Sprawa bywa jednak dłuższa.", pathIds: ["brak-zgody"], priority: 15 },
@@ -229,8 +207,8 @@ export const rozwod = defineInstruction({
     },
     {
       id: "przemoc",
-      name: "Gdy jest przemoc",
-      summary: "Bezpieczeństwo przed procedurą. Pomoc jest bezpłatna i dostępna całodobowo.",
+      name: "Gdy czujesz zagrożenie",
+      summary: "Na wypadek, gdyby rozstanie wiązało się z groźbami lub przemocą: gdzie dostać całodobową, bezpłatną pomoc.",
       kind: "free-help",
       illustration: "warning-sign",
       whenApplicable: ["Doświadczasz przemocy fizycznej, psychicznej, ekonomicznej lub seksualnej.", "Boisz się drugiej osoby."],
@@ -252,14 +230,14 @@ export const rozwod = defineInstruction({
   ],
   warnings: [
     { id: "w-mediacja-nie-rozwod", severity: "important", title: "Mediacja nie daje rozwodu", body: "Mediacja pomaga ustalić sporne sprawy. Rozwód orzeka wyłącznie sąd okręgowy. Projekt rozwodu w urzędzie stanu cywilnego nie obowiązuje.", sourceReferences: ["gov-mediacje", "ms-rozwod-usc"] },
-    { id: "w-przemoc", severity: "urgent", title: "Przy przemocy nie idź na mediację", body: "Mediacja wymaga równości stron. Przy przemocy nie jest możliwa ani bezpieczna.", sourceReferences: ["so-gliwice-mediacja"] },
     { id: "w-dzieci", severity: "important", title: "Nie angażuj dzieci w konflikt", body: "Sąd ocenia sprawy dzieci przez pryzmat ich dobra. Wciąganie dzieci w spór zwykle szkodzi i dzieciom, i Twojej sytuacji w sądzie." },
     { id: "w-kredyt", severity: "important", title: "Rozwód nie zmienia umowy kredytu", body: "Jeśli oboje jesteście kredytobiorcami, bank może żądać spłaty od każdego z Was – niezależnie od ustaleń między Wami." },
     { id: "w-podpisy", severity: "important", title: "Nie podpisuj ustaleń pod presją", body: "Porozumienie ma być dobrowolne i zrozumiałe. Jeśli czujesz presję – zatrzymaj się i skonsultuj treść." },
+    { id: "w-przemoc", severity: "important", title: "Mediacja nie zawsze jest dobrym wyborem", body: "Jeśli w związku są groźby, zastraszanie albo przemoc, mediacja nie daje równych szans – wtedy lepiej od razu skierować sprawę do sądu.", sourceReferences: ["so-gliwice-mediacja"] },
   ],
   freeHelp: [
-    { name: "Niebieska Linia", description: "Całodobowe, bezpłatne wsparcie dla osób doznających przemocy domowej.", phone: "800 120 002", url: "https://www.gov.pl/web/rodzina/pogotowie-niebieska-linia-calodobowo" },
     { name: "Nieodpłatna pomoc prawna i mediacja", description: "W punktach nieodpłatnej pomocy prawnej dostępna jest też nieodpłatna mediacja.", url: "https://zapisy-np.ms.gov.pl" },
+    { name: "Niebieska Linia", description: "Całodobowe, bezpłatne wsparcie dla osób doznających przemocy domowej.", phone: "800 120 002", url: "https://www.gov.pl/web/rodzina/pogotowie-niebieska-linia-calodobowo" },
   ],
   sourceReferences: pick("soLodzOplata", "soWarszawaPragaZwrot", "soRzeszowPozew", "mediacjaKoszty", "govMediacje", "soGliwiceMediacjaPrzemoc", "niebieskaLinia", "msRozwodUsc", "nieodplatnaPomoc"),
   legalStatusNote:

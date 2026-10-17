@@ -138,7 +138,6 @@ export const alimenty = defineInstruction({
       {
         id: "n-rozmowa",
         question: "Czy możecie się porozumieć co do kwoty?",
-        help: "Przy przemocy lub zastraszaniu mediacja nie jest właściwa.",
         options: [
           { id: "o-rozmowa-tak", label: "Tak, raczej tak", outcomeIds: ["r-porozumienie"] },
           { id: "o-rozmowa-nie", label: "Nie", outcomeIds: ["r-pozew"] },
