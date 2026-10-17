@@ -1,4 +1,5 @@
-import { AlertTriangle, ExternalLink, Phone } from "lucide-react";
+import { AlertTriangle, Phone } from "lucide-react";
+import { CopyLink } from "@/components/ui/CopyLink";
 import Link from "next/link";
 import type { VisibleExpert } from "@/lib/repo/experts";
 import type { FreeHelpResource, SourceReference, Warning } from "@/lib/types";
@@ -73,10 +74,7 @@ export function FreeHelpList({ items }: { items: FreeHelpResource[] }) {
                 </a>
               )}
               {h.url && (
-                <a href={h.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 break-all">
-                  {new URL(h.url).hostname.replace(/^www\./, "")} <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="sr-only">(otwiera się w nowej karcie)</span>
-                </a>
+                <CopyLink url={h.url} label={new URL(h.url).hostname.replace(/^www\./, "")} />
               )}
             </p>
           </li>
@@ -131,9 +129,7 @@ export function SourcesSection({
           <li key={s.id} id={`zrodlo-${s.id}`} className="flex gap-3">
             <span className="w-7 shrink-0 font-extrabold tabular-nums text-muted">[{i + 1}]</span>
             <div className="min-w-0">
-              <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-semibold break-words">
-                {s.title}
-              </a>
+              <CopyLink url={s.url} label={s.title} className="align-middle font-semibold" />
               <span className="text-muted"> – {s.publisher}</span>
               <p className="mt-0.5 text-xs text-muted">
                 {s.publishedOrUpdated && <>Dokument: {formatDate(s.publishedOrUpdated)} · </>}

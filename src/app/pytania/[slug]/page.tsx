@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CopyLink } from "@/components/ui/CopyLink";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/components/instruction/ServerSections";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
@@ -122,7 +123,7 @@ export default async function QuestionPage({ params }: P) {
         <ol className="mt-4 grid gap-2 text-sm">
           {q.sourceReferences.map((s, i) => (
             <li key={s.id}>
-              [{i + 1}] <a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a> – {s.publisher}
+              [{i + 1}] <CopyLink url={s.url} label={s.title} className="align-middle" /> – {s.publisher}
               <span className="text-xs text-muted"> (sprawdzono {formatDate(s.verifiedAt)})</span>
             </li>
           ))}

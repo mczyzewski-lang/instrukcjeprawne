@@ -224,3 +224,15 @@ test("przyklejony pasek pokazuje bieżącą sekcję i pozwala przejść do innej
   await bar.getByRole("link", { name: /Na co uważać/ }).click();
   await expect(bar).toContainText("Na co uważać?");
 });
+
+test("linki zewnętrzne nie wyprowadzają ze strony – adres można skopiować", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/instrukcje/jak-ochronic-marke");
+  const external = page.locator('main a[href^="http"]:not([href*="localhost"])');
+  await expect(external).toHaveCount(0);
+  const copy = page.getByRole("button", { name: /^Kopiuj adres: https:\/\// }).first();
+  const url = (await copy.getAttribute("aria-label"))!.replace("Kopiuj adres: ", "");
+  await copy.click();
+  await expect(page.getByRole("button", { name: "Skopiowano adres" }).first()).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
+});
