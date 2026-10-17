@@ -44,6 +44,21 @@ Research: 16.10.2026, wyszukiwarka z filtrem domen urzędowych (gov.pl, sejm.gov
 
 **Przed startem:** prawnik weryfikuje i zatwierdza treści w panelu, `PUBLIC_SHOW_UNREVIEWED=false`, uzupełnienie danych operatora i polityki prywatności, konfiguracja webhooków partnerów, nazwa zespołu SKD.
 
-## Wdrożenie
+## Wdrożenie na Railway
 
-Aplikacja potrzebuje serwera Node z trwałym dyskiem dla `DATA_DIR` (SQLite + grafiki), np. VPS/Docker, Railway, Fly.io, Render z wolumenem. Platformy bez trwałego dysku (np. Vercel) wymagają zamiany bazy.
+Repozytorium zawiera `railway.json` (build, start, healthcheck) i `.node-version` (Node 22).
+
+1. Railway → **New Project → Deploy from GitHub repo** → wybierz to repozytorium i gałąź.
+2. W usłudze: **Settings → Volumes → Add Volume**, ścieżka montowania `/data`.
+3. **Variables** (minimum):
+   - `DATA_DIR=/data`
+   - `NEXT_PUBLIC_SITE_URL=https://<twoja-domena-lub-adres>.up.railway.app`
+   - `ADMIN_PASSWORD=<silne hasło>`
+   - `ADMIN_SESSION_SECRET=<min. 32 losowe znaki>`
+   - `HASH_SALT=<losowy ciąg>`
+   - opcjonalnie: `PUBLIC_SHOW_UNREVIEWED`, `OPENAI_API_KEY`, `LEAD_WEBHOOK_*` (zob. `.env.example`)
+4. **Settings → Networking → Generate Domain** (lub własna domena). Po zmianie adresu zaktualizuj `NEXT_PUBLIC_SITE_URL` i zrób redeploy – ta zmienna jest wkompilowana w build.
+
+Baza tworzy się sama przy pierwszym starcie (treści z `src/content`). Dane panelu, zgłoszenia i grafiki leżą na wolumenie i przetrwają kolejne wdrożenia. Uruchamiaj jedną instancję (SQLite).
+
+Inne hostingi: dowolny serwer Node z trwałym dyskiem (VPS, Fly.io, Render z dyskiem). Platformy bez trwałego dysku (np. Vercel) wymagają zamiany bazy.
