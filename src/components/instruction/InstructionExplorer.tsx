@@ -175,7 +175,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     <>
       {/* B — drogi */}
       <section aria-labelledby="sekcja-b" className="border-t border-line py-12 sm:py-16">
-        <SectionHeading letter="B" id="sekcja-b" title="Poznaj możliwe drogi" lead="Odpowiedz na kilka pytań albo od razu przejrzyj wszystkie drogi. Każda ma swoje warunki, koszty i ryzyko." />
+        <SectionHeading letter="B" id="sekcja-b" title="Poznaj możliwe drogi" lead="Nie wiesz, którą instrukcję wybrać? Odpowiedz na kilka pytań poniżej – podpowiemy, która droga pasuje do Twojej sytuacji. Możesz też od razu przejrzeć wszystkie drogi." />
         <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <div className="lg:sticky lg:top-32 lg:self-start">
             <DecisionTree

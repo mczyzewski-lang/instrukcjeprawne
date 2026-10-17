@@ -100,7 +100,8 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
   return (
     <div id="drzewo" className="card overflow-hidden">
       <div className="border-b border-line px-5 py-4 sm:px-7">
-        <p className="font-extrabold">{tree.title}</p>
+        <p className="eyebrow">Nie wiesz, którą instrukcję wybrać?</p>
+        <p className="mt-1 text-lg font-extrabold">Odpowiedz na poniższe pytania</p>
         <p className="mt-1 text-sm text-muted">{tree.intro}</p>
         <div className="mt-4 flex items-center gap-3" aria-hidden="true">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
