@@ -225,3 +225,34 @@ export function parseQuestion(data: unknown): { ok: true; value: Question } | { 
   if (r.success) return { ok: true, value: r.data as Question };
   return { ok: false, errors: r.error.issues.map((i) => `${i.path.join(".") || "dokument"}: ${i.message}`) };
 }
+
+/* ---------- Czat z ekspertem ---------- */
+
+export const PHONE_PREFIXES = ["+48", "+49", "+44", "+353", "+31", "+47", "+46", "+420", "+380", "+1"] as const;
+
+export const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export const chatStartSchema = z.object({
+  name: z.string().trim().min(2, "Podaj imię").max(80, "Imię jest za długie"),
+  email: z.string().trim().max(160).refine((v) => emailRe.test(v), "Podaj poprawny adres e-mail"),
+  marketingConsent: z.boolean().default(false),
+  phonePrefix: z.enum(PHONE_PREFIXES),
+  phone: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/[\s()-]/g, ""))
+    .refine((v) => /^\d{6,12}$/.test(v), "Podaj poprawny numer telefonu (same cyfry, bez prefiksu)"),
+  message: z.string().trim().min(5, "Napisz krótko, w czym możemy pomóc").max(2000, "Wiadomość jest za długa (maks. 2000 znaków)"),
+  topic: z.string().min(1).max(80),
+  instructionSlug: slug.optional(),
+  pathId: id.optional(),
+  website: z.string().max(0).optional(),
+  startedAt: z.number().int().positive(),
+});
+
+export type ChatStartInput = z.infer<typeof chatStartSchema>;
+
+export const chatMessageSchema = z.object({
+  token: z.string().min(20).max(100),
+  message: z.string().trim().min(1).max(2000, "Wiadomość jest za długa (maks. 2000 znaków)"),
+});

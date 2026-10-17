@@ -85,21 +85,36 @@ test("checklista i PDF bez podawania e-maila", async ({ page, request }) => {
   expect((await full.body()).subarray(0, 4).toString()).toBe("%PDF");
 });
 
-test("formularz eksperta: walidacja, ujawnienie partnera i zapis zgłoszenia", async ({ page }) => {
+test("chat z ekspertem: kolejne pytania, zgoda marketingowa po poprawnym e-mailu, wysłanie", async ({ page }) => {
   await page.goto("/instrukcje/jak-rozwiesc-sie-bez-konfliktu");
   const help = page.locator("#pomoc");
   await expect(help.getByText("Nie musisz wszystkiego robić samodzielnie.")).toBeVisible();
-  await help.getByRole("button", { name: "Porozmawiaj bezpłatnie z ekspertem →" }).click();
+  await expect(help.getByText("odpowiada merytorycznie za ten dział")).toBeVisible();
+  await help.getByRole("button", { name: "Rozpocznij chat" }).click();
   await expect(help.getByText(/podmiot komercyjny \(Nowy Etap\)/)).toBeVisible();
-  await help.getByRole("button", { name: "Poproś o bezpłatną rozmowę" }).click();
+  await expect(help.getByText("Jak masz na imię?")).toBeVisible();
+  await help.getByRole("button", { name: "Dalej" }).click();
   await expect(help.getByText("Podaj imię.")).toBeVisible();
-  await expect(help.getByText(/Zaznacz zgodę/)).toBeVisible();
   await help.getByLabel("Imię").fill("Ewa");
+  await help.getByRole("button", { name: "Dalej" }).click();
+  const email = help.getByLabel("E-mail");
+  await email.fill("ewa@przyklad");
+  await expect(help.getByText(/Zgadzam się na otrzymywanie e-mailem/)).toHaveCount(0);
+  await email.fill("ewa@przyklad.pl");
+  await expect(help.getByText(/Zgadzam się na otrzymywanie e-mailem/)).toBeVisible();
+  await help.getByRole("button", { name: "Dalej" }).click();
+  await expect(help.getByText(/wyślemy Ci SMS/).first()).toBeVisible();
+  await expect(help.getByLabel("Prefiks kraju")).toHaveValue("+48");
   await help.getByLabel("Numer telefonu").fill("600 100 200");
-  await help.getByRole("checkbox").check();
-  await page.waitForTimeout(2600); // zabezpieczenie czasowe przed botami
-  await help.getByRole("button", { name: "Poproś o bezpłatną rozmowę" }).click();
-  await expect(help.getByText("Dziękujemy. Zgłoszenie zostało przyjęte.")).toBeVisible();
+  await help.getByRole("button", { name: "Dalej" }).click();
+  await help.getByLabel("Wiadomość").fill("Chcemy rozwieść się zgodnie, mamy jedno dziecko.");
+  await page.waitForTimeout(3100); // zabezpieczenie czasowe przed botami
+  await help.getByRole("button", { name: "Wyślij" }).click();
+  await expect(help.getByText(/Odpowiedź pojawi się w tym oknie/)).toBeVisible();
+  await expect(help.getByText("Chcemy rozwieść się zgodnie, mamy jedno dziecko.")).toBeVisible();
+  // rozmowa wraca po odświeżeniu strony
+  await page.reload();
+  await expect(page.locator("#pomoc").getByText("Chcemy rozwieść się zgodnie, mamy jedno dziecko.")).toBeVisible();
 });
 
 test("pytanie: krótka odpowiedź, działania, link do instrukcji, źródła", async ({ page }) => {
@@ -152,7 +167,17 @@ test("panel: logowanie, publikacja instrukcji i import CSV", async ({ page }) =>
   expect(r?.status()).toBe(404);
 
   await page.goto("/admin/leady");
-  await expect(page.getByText("Ewa")).toBeVisible();
+  await expect(page.getByText("Ewa").first()).toBeVisible();
+
+  // odpowiedź eksperta w czacie
+  await page.goto("/admin/czaty");
+  await page.getByRole("link", { name: /Ewa/ }).first().click();
+  await page.getByLabel("Odpowiedź").fill("Dzień dobry, zacznijmy od planu wychowawczego.");
+  await page.getByLabel("Podpis (kto odpowiada)").fill("Ekspert testowy");
+  await page.getByRole("button", { name: "Wyślij odpowiedź" }).click();
+  await expect(page.getByText(/Wysłano\. SMS:/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Dzień dobry, zacznijmy od planu wychowawczego.").first()).toBeVisible();
 });
 
 test("ekspert nadzorujący i strona Informacje", async ({ page }) => {

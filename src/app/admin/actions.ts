@@ -316,6 +316,7 @@ export async function saveExpertAction(fd: FormData) {
     role: str("role", 160),
     bio: str("bio", 1200),
     affiliation: str("affiliation", 300),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(str("email", 160)) ? str("email", 160) : "",
     categories: categories.length ? categories : cur.categories,
     status,
   });
@@ -354,4 +355,31 @@ export async function saveFoundersVideoAction(fd: FormData) {
   });
   revalidatePath("/informacje");
   redirect("/admin/ustawienia?info=zapisano");
+}
+
+/* ---------- czaty ---------- */
+
+export async function replyChatAction(fd: FormData) {
+  const s = await requireAdmin();
+  const { expertReply } = await import("@/lib/repo/chats");
+  const id = String(fd.get("id"));
+  const body = String(fd.get("body") ?? "").trim().slice(0, 4000);
+  const as = String(fd.get("as") ?? "").trim().slice(0, 120) || s.name;
+  if (!body) redirect(`/admin/czaty/${id}?blad=${encodeURIComponent("Wpisz treść odpowiedzi")}`);
+  const r = await expertReply(id, as, body);
+  revalidatePath(`/admin/czaty/${id}`);
+  redirect(`/admin/czaty/${id}?info=${encodeURIComponent(`Wysłano. SMS: ${r.sms}`)}`);
+}
+
+export async function chatStatusAction(fd: FormData) {
+  await requireAdmin();
+  const { setChatStatus, deleteChat } = await import("@/lib/repo/chats");
+  const id = String(fd.get("id"));
+  const op = String(fd.get("op"));
+  if (op === "delete") {
+    deleteChat(id);
+    redirect("/admin/czaty");
+  }
+  setChatStatus(id, op === "close" ? "closed" : "open");
+  redirect(`/admin/czaty/${id}`);
 }

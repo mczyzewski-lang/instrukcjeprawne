@@ -236,6 +236,8 @@ export interface Expert {
   categories: CategorySlug[];
   /** ujawnienie powiązań, np. „Współpracuje z Pravna (podmiot komercyjny)” */
   affiliation?: string;
+  /** adres e-mail do przycisku „Wyślij wiadomość e-mail” (opcjonalny) */
+  email?: string;
   /** nazwa pliku zdjęcia w magazynie (ustawiana przez panel) */
   photoFile?: string | null;
   /** published = dane prawdziwe i zatwierdzone; draft = do uzupełnienia */

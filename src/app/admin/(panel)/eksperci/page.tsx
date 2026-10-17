@@ -36,6 +36,7 @@ export default async function Experts({ searchParams }: { searchParams: Promise<
             <label><span className="field-label">Tytuł zawodowy</span><input name="title" defaultValue={e.title} placeholder="np. radca prawny" className="field-input" /></label>
             <label className="sm:col-span-2"><span className="field-label">Rola w serwisie</span><input name="role" defaultValue={e.role} className="field-input" /></label>
             <label className="sm:col-span-2"><span className="field-label">Krótki opis (2–3 zdania, bez języka reklamowego)</span><textarea name="bio" rows={3} defaultValue={e.bio} className="field-input" /></label>
+            <label className="sm:col-span-2"><span className="field-label">E-mail do przycisku „Wyślij wiadomość e-mail” (opcjonalnie)</span><input name="email" type="email" defaultValue={e.email} className="field-input" /></label>
             <label className="sm:col-span-2"><span className="field-label">Powiązania (ujawnienie)</span><input name="affiliation" defaultValue={e.affiliation} placeholder="np. Współpracuje z Pravna (podmiot komercyjny)" className="field-input" /></label>
             <fieldset className="sm:col-span-2">
               <legend className="field-label">Działy</legend>

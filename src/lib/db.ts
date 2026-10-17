@@ -96,6 +96,35 @@ CREATE TABLE IF NOT EXISTS settings (
   json TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS chats (
+  id TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  partner TEXT NOT NULL,
+  expert_id TEXT,
+  instruction_slug TEXT,
+  path_id TEXT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  marketing_consent INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'open',
+  lead_id TEXT,
+  user_seen_at TEXT,
+  admin_seen_at TEXT,
+  sms_status TEXT
+);
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  author TEXT NOT NULL,
+  author_name TEXT,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chat_messages_chat ON chat_messages(chat_id);
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   window_start INTEGER NOT NULL,

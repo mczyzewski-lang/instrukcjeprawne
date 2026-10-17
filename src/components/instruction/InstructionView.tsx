@@ -13,7 +13,7 @@ import { Illustration } from "@/components/ui/Illustration";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { ReviewBanner } from "@/components/ui/ReviewBanner";
 import { categoryBySlug } from "@/content/categories";
-import { SITE_NAME, siteUrl } from "@/lib/config";
+import { LEGAL_ENTITY, SITE_NAME, siteUrl } from "@/lib/config";
 import { approvedIllustrations } from "@/lib/illustration-generator";
 import { expertFor } from "@/lib/repo/experts";
 import { getLeadConfig } from "@/lib/repo/leads";
@@ -160,6 +160,17 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
         }
         instructionTitles={instructionTitles}
         sourceNumbers={sourceNumbers}
+        expert={
+          ex
+            ? {
+                name: ex.expert.name,
+                title: ex.expert.title,
+                photoUrl: ex.expert.photoFile ? `/api/experts/${ex.expert.id}/photo?v=${encodeURIComponent(ex.expert.photoFile)}` : null,
+                placeholder: ex.placeholder,
+                email: ex.expert.email || (LEGAL_ENTITY.contactEmail.includes("@") ? LEGAL_ENTITY.contactEmail : null),
+              }
+            : null
+        }
         warningsSlot={<WarningsSection warnings={ins.warnings} sourceNumbers={sourceNumbers} expert={ex} />}
         freeHelpSlot={<FreeHelpList items={ins.freeHelp} />}
       />

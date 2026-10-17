@@ -78,3 +78,15 @@ export const LEGAL_ENTITY = {
   operator: process.env.NEXT_PUBLIC_OPERATOR_NAME || "[Uzupełnij: nazwa operatora serwisu]",
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "[Uzupełnij: e-mail kontaktowy]",
 };
+
+/** Bramka SMS (np. własny endpoint dostawcy). POST JSON { to, message }. Brak = SMS nieskonfigurowane. */
+export function smsConfig() {
+  const url = process.env.SMS_WEBHOOK_URL;
+  return { configured: Boolean(url), url: url ?? null, token: process.env.SMS_WEBHOOK_TOKEN ?? null };
+}
+
+/** Po ilu minutach bez odpowiedzi eksperta wysyłamy SMS (gdy użytkownik nie jest już na stronie). */
+export function smsAfterMinutes(): number {
+  const v = Number(process.env.SMS_AFTER_MINUTES);
+  return Number.isFinite(v) && v > 0 ? v : 5;
+}

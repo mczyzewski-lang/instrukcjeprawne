@@ -7,7 +7,7 @@ import { StepNumber } from "@/components/ui/StepNumber";
 import { store, track } from "@/lib/analytics-client";
 import { PATH_KIND_LABEL, type Instruction, type Path } from "@/lib/types";
 import { DecisionTree } from "./DecisionTree";
-import { LeadForm } from "./LeadForm";
+import { ExpertChat, type ChatExpert } from "./ExpertChat";
 import { SectionHeading } from "./SectionHeading";
 
 export interface LeadProps {
@@ -23,6 +23,7 @@ interface Props {
   lead: LeadProps | null;
   instructionTitles: Record<string, string>;
   sourceNumbers: Record<string, number>;
+  expert: ChatExpert | null;
   warningsSlot: ReactNode;
   freeHelpSlot: ReactNode;
 }
@@ -57,12 +58,12 @@ function Facts({ title, items, tone = "plain" }: { title: string; items: string[
   );
 }
 
-export function InstructionExplorer({ instruction: ins, approved, lead, instructionTitles, sourceNumbers, warningsSlot, freeHelpSlot }: Props) {
+export function InstructionExplorer({ instruction: ins, approved, lead, instructionTitles, sourceNumbers, expert, warningsSlot, freeHelpSlot }: Props) {
   const [selected, setSelected] = useState<string>(ins.paths[0].id);
   const [highlighted, setHighlighted] = useState<string[]>([]);
   const [done, setDone] = useState<string[]>([]);
   const [checked, setChecked] = useState<string[]>([]);
-  const [expertOpen, setExpertOpen] = useState(false);
+  const [chatSignal, setChatSignal] = useState(0);
   const path = ins.paths.find((p) => p.id === selected) ?? ins.paths[0];
   const pathNames = useMemo(() => Object.fromEntries(ins.paths.map((p) => [p.id, p.name])), [ins.paths]);
   const storeKey = `ip:${ins.slug}`;
@@ -114,8 +115,8 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
   };
 
   const openExpert = (source: string) => {
-    setExpertOpen(true);
-    track("expert_cta_clicked", { instructionSlug: ins.slug, pathId: path.id, props: { source } });
+    setChatSignal((n) => n + 1);
+    void source;
     requestAnimationFrame(() => document.getElementById("pomoc-formularz")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
@@ -275,25 +276,18 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
           {lead && (
             <div id="pomoc-formularz" className="card p-5 sm:p-7">
               <p className="text-xl font-extrabold">Nie musisz wszystkiego robić samodzielnie.</p>
-              <p className="mt-2 text-muted">Możesz bezpłatnie porozmawiać z ekspertem i dowiedzieć się, jakie kolejne kroki warto rozważyć.</p>
-              {!expertOpen ? (
-                <button type="button" className="btn btn-secondary mt-5" onClick={() => openExpert("help-section")}>
-                  Porozmawiaj bezpłatnie z ekspertem →
-                </button>
-              ) : (
-                <div className="mt-6">
-                  <LeadForm
-                    topic={lead.topic}
-                    partnerName={lead.partnerName}
-                    disclosure={lead.disclosure}
-                    askEmail={lead.askEmail}
-                    instructionSlug={ins.slug}
-                    instructionTitle={ins.title}
-                    pathId={path.id}
-                    pathName={path.name}
-                  />
-                </div>
-              )}
+              <p className="mt-2 text-muted">Możesz bezpłatnie napisać do eksperta, który odpowiada za ten dział, i dowiedzieć się, jakie kolejne kroki warto rozważyć.</p>
+              <ExpertChat
+                topic={lead.topic}
+                partnerName={lead.partnerName}
+                disclosure={lead.disclosure}
+                instructionSlug={ins.slug}
+                instructionTitle={ins.title}
+                pathId={path.id}
+                pathName={path.name}
+                expert={expert}
+                openSignal={chatSignal}
+              />
             </div>
           )}
         </div>
