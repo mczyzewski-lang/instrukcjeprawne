@@ -123,9 +123,10 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
       <SectionStickyBar sections={sticky} />
 
       <nav aria-label="Sekcje instrukcji" className="no-print mb-6">
-        <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+        {/* na telefonie pasek przewija się od krawędzi do krawędzi ekranu (bez ucinania przy marginesie) */}
+        <ul className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
           {sticky.map((sec) => (
-            <li key={sec.id} className="shrink-0">
+            <li key={sec.id} className="shrink-0 snap-start">
               <a
                 href={`#${sec.id}`}
                 className="flex min-h-12 items-center gap-2.5 rounded-sm border-2 border-line bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold no-underline transition-colors hover:border-navy"
@@ -137,6 +138,7 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
               </a>
             </li>
           ))}
+          <li aria-hidden="true" className="w-2 shrink-0 sm:hidden" />
         </ul>
       </nav>
 
