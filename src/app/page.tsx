@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { CategoryCard, InstructionCard } from "@/components/ui/Cards";
 import { Illustration } from "@/components/ui/Illustration";
+import { InstructionPicker } from "@/components/ui/InstructionPicker";
 import { SearchBox } from "@/components/ui/SearchBox";
 import { StepNumber } from "@/components/ui/StepNumber";
 import { FEATURED_SLUGS } from "@/content";
@@ -13,7 +14,7 @@ export const revalidate = 300;
 
 const POPULAR = [
   { q: "komornik zajął konto", label: "Komornik zajął konto" },
-  { q: "nakaz zapłaty", label: "Dostałem nakaz zapłaty" },
+  { q: "nakaz zapłaty", label: "Nakaz zapłaty z sądu" },
   { q: "upadłość konsumencka", label: "Upadłość konsumencka" },
   { q: "rozwód bez winy", label: "Rozwód bez winy" },
 ];
@@ -29,6 +30,10 @@ export default function HomePage() {
   const bySlug = new Map(instructions.map((i) => [i.slug, i]));
   const featured = FEATURED_SLUGS.map((s) => bySlug.get(s)).filter((i) => i !== undefined);
   const docs = buildSearchDocs();
+  const pickerGroups = CATEGORIES.map((c) => ({
+    label: c.name,
+    items: instructions.filter((i) => i.category === c.slug).map((i) => ({ slug: i.slug, title: i.title })).sort((a, b) => a.title.localeCompare(b.title, "pl")),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <>
@@ -44,7 +49,11 @@ export default function HomePage() {
               Dowiedz się krok po kroku, jakie masz możliwości. Bez skomplikowanego języka prawniczego. Bezpłatnie.
             </p>
             <div className="mt-10 max-w-2xl">
-              <SearchBox docs={docs} />
+              <InstructionPicker groups={pickerGroups} />
+              <p className="my-5 flex items-center gap-4 text-sm font-bold uppercase tracking-wider text-muted" aria-hidden="true">
+                <span className="h-px flex-1 bg-line" /> lub <span className="h-px flex-1 bg-line" />
+              </p>
+              <SearchBox docs={docs} label="Wpisz, jaki problem chcesz rozwiązać:" />
               <ul className="mt-4 flex flex-wrap gap-2" aria-label="Często szukane">
                 {POPULAR.map((p) => (
                   <li key={p.q}>

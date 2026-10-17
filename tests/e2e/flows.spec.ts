@@ -8,12 +8,22 @@ test.beforeEach(async ({ page }) => {
 test("strona główna: wyszukiwarka podpowiada konkretny problem", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Trudna sprawa.");
-  const box = page.getByRole("combobox", { name: "Jaki problem chcesz rozwiązać?" });
+  const box = page.getByRole("combobox", { name: "Wpisz, jaki problem chcesz rozwiązać:" });
   await box.fill("komornik zajął konto");
-  const options = page.getByRole("option");
+  const options = page.getByRole("listbox").getByRole("option");
   await expect(options.first()).toBeVisible();
   await options.filter({ hasText: "komornik zajął konto" }).first().click();
   await expect(page).toHaveURL(/komornik-zajal-konto|czy-komornik-moze-zajac/);
+});
+
+test("strona główna: wybór instrukcji z listy", async ({ page }) => {
+  await page.goto("/");
+  const picker = page.getByLabel("Wybierz instrukcję prawną:");
+  await page.getByRole("button", { name: "Otwórz instrukcję" }).click();
+  await expect(page.getByText("Wybierz instrukcję z listy.")).toBeVisible();
+  await picker.selectOption("co-zrobic-z-nakazem-zaplaty");
+  await page.getByRole("button", { name: "Otwórz instrukcję" }).click();
+  await expect(page).toHaveURL(/\/instrukcje\/co-zrobic-z-nakazem-zaplaty$/);
 });
 
 test("wyszukiwanie bez JS działa jako formularz", async ({ page }) => {
