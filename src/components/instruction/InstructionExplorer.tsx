@@ -10,6 +10,8 @@ import { DecisionTree } from "./DecisionTree";
 import { buildPlan, encodePlan, planPdfHref, planTitle, type PlanInput } from "@/lib/plan";
 import { ExpertChat, type ChatAttachment, type ChatExpert } from "./ExpertChat";
 import { PlanPanel } from "./PlanPanel";
+import { PlanWizard, type PlanConfig } from "./PlanWizard";
+import { MobilePlanBar } from "./MobilePlanBar";
 import { situationKey } from "./SituationQuestions";
 import { SectionHeading } from "./SectionHeading";
 
@@ -68,9 +70,10 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
   const [checked, setChecked] = useState<string[]>([]);
   const [chatSignal, setChatSignal] = useState(0);
   const [treeAnswers, setTreeAnswers] = useState<string[]>([]);
-  const [planOpen, setPlanOpen] = useState(false);
+  /** odpowiedzi z kreatora planu; null = planu jeszcze nie ma */
+  const [planCfg, setPlanCfg] = useState<PlanConfig | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [planTicks, setPlanTicks] = useState<string[]>([]);
-  const [situation, setSituation] = useState<PlanInput["s"]>({});
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
   const path = ins.paths.find((p) => p.id === selected) ?? ins.paths[0];
   const pathNames = useMemo(() => Object.fromEntries(ins.paths.map((p) => [p.id, p.name])), [ins.paths]);
@@ -78,23 +81,20 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
 
   useEffect(() => {
     const fromHash = window.location.hash.match(/^#droga-([a-z0-9-]+)/)?.[1];
-    const saved = store.get<{ path?: string; done?: string[]; checked?: string[]; plan?: boolean; planTicks?: string[] }>(storeKey, {});
+    const saved = store.get<{ path?: string; done?: string[]; checked?: string[]; planCfg?: PlanConfig; planTicks?: string[] }>(storeKey, {});
     const initial = [fromHash, saved.path].find((p) => p && ins.paths.some((x) => x.id === p));
     /* eslint-disable react-hooks/set-state-in-effect -- przywrócenie postępu z localStorage po hydratacji */
     if (initial) setSelected(initial);
     setDone(saved.done ?? []);
     setChecked(saved.checked ?? []);
     setPlanTicks(saved.planTicks ?? []);
-    if (saved.plan) {
-      setSituation(readSituation(ins.slug));
-      setPlanOpen(true);
-    }
+    if (saved.planCfg && typeof saved.planCfg === "object") setPlanCfg(saved.planCfg);
     /* eslint-enable react-hooks/set-state-in-effect */
     track("instruction_opened", { instructionSlug: ins.slug });
     store.set("ip:last", { slug: ins.slug, title: ins.title, at: Date.now() });
   }, [ins.slug, ins.title, ins.paths, storeKey]);
 
-  const persist = (patch: { path?: string; done?: string[]; checked?: string[]; plan?: boolean; planTicks?: string[] }) => {
+  const persist = (patch: { path?: string; done?: string[]; checked?: string[]; planCfg?: PlanConfig; planTicks?: string[] }) => {
     const cur = store.get<Record<string, unknown>>(storeKey, {});
     store.set(storeKey, { ...cur, ...patch });
   };
@@ -128,26 +128,40 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
   };
 
   /* ---------- Plan ---------- */
-  const planInput: PlanInput = useMemo(
-    () => ({ s: situation, o: treeAnswers, p: selected, d: [...done, ...checked, ...planTicks] }),
-    [situation, treeAnswers, selected, done, checked, planTicks],
-  );
-  const plan = useMemo(() => (planOpen ? buildPlan(ins, planInput) : null), [planOpen, ins, planInput]);
-  const planCode = useMemo(() => (plan ? encodePlan({ ...planInput, p: plan.pathId }) : ""), [plan, planInput]);
+  const planInput: PlanInput | null = useMemo(() => (planCfg ? { ...planCfg, d: [...done, ...checked, ...planTicks] } : null), [planCfg, done, checked, planTicks]);
+  const plan = useMemo(() => (planInput ? buildPlan(ins, planInput) : null), [ins, planInput]);
+  const planCode = useMemo(() => (plan && planInput ? encodePlan({ ...planInput, p: plan.pathId }) : ""), [plan, planInput]);
   const planLabel = `Wygeneruj bezpłatnie ${planTitle(ins)}`;
+  const scrollToPlan = () => requestAnimationFrame(() => document.getElementById("plan")?.scrollIntoView({ behavior: "smooth", block: "start" }));
 
+  /** otwiera kreator z tym, co już wiadomo (sekcja A, drzewo decyzji, wybrana droga) */
   const generatePlan = (source: string) => {
-    setSituation(readSituation(ins.slug));
-    setPlanOpen(true);
-    persist({ plan: true });
     track("plan_generated", { instructionSlug: ins.slug, pathId: path.id, props: { source } });
-    requestAnimationFrame(() => document.getElementById("plan")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    setWizardOpen(true);
+    scrollToPlan();
+  };
+  const wizardInitial: PlanConfig = planCfg
+    ? { ...planCfg, o: treeAnswers.length > planCfg.o.length ? treeAnswers : planCfg.o }
+    : { s: readSituation(ins.slug), o: treeAnswers, p: selected };
+
+  const finishWizard = (cfg: PlanConfig, docs: string[]) => {
+    setPlanCfg(cfg);
+    setWizardOpen(false);
+    // dokumenty i droga wspólne z sekcjami C i D, odpowiedzi z sekcji A – z sekcją A
+    const planPath = ins.paths.find((p) => p.id === cfg.p);
+    const nextChecked = [...new Set([...checked.filter((id) => !planPath?.documents.some((d) => d.id === id)), ...docs])];
+    setChecked(nextChecked);
+    store.set(situationKey(ins.slug), Object.fromEntries(Object.entries(cfg.s).map(([k, v]) => [k, v ? "tak" : "nie"])));
+    if (cfg.p !== selected) setSelected(cfg.p);
+    persist({ planCfg: cfg, checked: nextChecked, path: cfg.p });
+    scrollToPlan();
   };
 
   const isPlanDone = (id: string) => done.includes(id) || checked.includes(id) || planTicks.includes(id);
   const togglePlan = (id: string) => {
-    if (path.steps.some((s) => s.id === id)) return toggleStep(id);
-    if (path.documents.some((d) => d.id === id)) return toggleCheck(id);
+    const planPath = ins.paths.find((p) => p.id === plan?.pathId);
+    if (planPath?.steps.some((s) => s.id === id)) return toggleStep(id);
+    if (planPath?.documents.some((d) => d.id === id)) return toggleCheck(id);
     const next = planTicks.includes(id) ? planTicks.filter((x) => x !== id) : [...planTicks, id];
     setPlanTicks(next);
     persist({ planTicks: next });
@@ -315,13 +329,15 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
 
       {/* Plan – osobista checklista z odpowiedzi */}
       <section id="plan" aria-label={planTitle(ins)} className="no-print-break pb-12 sm:pb-16">
-        {plan ? (
+        {wizardOpen ? (
+          <PlanWizard ins={ins} initial={wizardInitial} initialDocs={checked} onCancel={() => setWizardOpen(false)} onDone={finishWizard} />
+        ) : plan ? (
           <PlanPanel
             plan={plan}
             pdfHref={planPdfHref(ins.slug, planCode)}
             isDone={isPlanDone}
             toggle={togglePlan}
-            onRefresh={() => setSituation(readSituation(ins.slug))}
+            onEdit={() => generatePlan("edit")}
             onDiscuss={lead ? discussPlan : undefined}
             onPdf={() => track("pdf_downloaded", { instructionSlug: ins.slug, pathId: plan.pathId, props: { source: "plan" } })}
           />
@@ -329,10 +345,10 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
           <div className="no-print flex flex-col gap-4 rounded-md border-2 border-navy bg-white p-5 sm:flex-row sm:items-center sm:p-7">
             <ListChecks className="h-10 w-10 shrink-0" aria-hidden="true" />
             <div className="min-w-0 flex-1">
-              <p className="text-lg font-extrabold">{planTitle(ins)} – bezpłatnie, w minutę</p>
+              <p className="text-lg font-extrabold">{planTitle(ins)} – bezpłatnie, w kilka minut</p>
               <p className="mt-1 text-sm text-muted">
-                Zbierzemy Twoje odpowiedzi, wybraną drogę, kroki, dokumenty i ostrzeżenia w jedną listę do odhaczania. Pobierzesz ją jako PDF – bez rejestracji i
-                bez e-maila.
+                Odpowiesz na kilka pytań o swoją sytuację, dokumenty i termin. Ułożymy z tego plan z datami – co zrobić najpierw, co przygotować i na co uważać.
+                Pobierzesz go jako PDF, bez rejestracji i bez e-maila.
               </p>
             </div>
             <button type="button" className="btn btn-primary shrink-0" onClick={() => generatePlan("section")}>
@@ -341,6 +357,8 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
           </div>
         )}
       </section>
+
+      <MobilePlanBar eyebrow={plan ? `Twój plan · ${plan.doneCount} z ${plan.total} zrobione` : "Wygeneruj bezpłatnie"} title={planTitle(ins)} onClick={() => (plan && !wizardOpen ? scrollToPlan() : generatePlan("mobile-bar"))} />
 
       {/* E — ostrzeżenia (treść z serwera) */}
       {warningsSlot}

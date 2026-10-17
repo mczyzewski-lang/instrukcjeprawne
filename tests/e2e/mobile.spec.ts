@@ -27,3 +27,15 @@ test("mobile: przyciski drzewa decyzji mają co najmniej 44 px wysokości", asyn
   const box = await btn.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
 });
+
+test("mobile: dolny pasek „Wygeneruj bezpłatnie Plan …” pojawia się dopiero poniżej hero", async ({ page }) => {
+  await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
+  await page.getByRole("button", { name: "Nie, dziękuję" }).click();
+  const bar = page.locator("[data-plan-bar] button");
+  await expect(bar).toBeHidden();
+  await page.locator("#sekcja-b").scrollIntoViewIfNeeded();
+  await expect(bar).toBeVisible();
+  await expect(bar).toHaveAccessibleName(/Wygeneruj bezpłatnie\s*Plan oddłużenia/);
+  await bar.click();
+  await expect(page.locator("#plan").getByRole("heading", { name: "Twoja sytuacja" })).toBeVisible();
+});

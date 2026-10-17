@@ -4,7 +4,7 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import SVGtoPDF from "svg-to-pdfkit";
 import { renderIllustrationSvg } from "@/illustrations/library";
-import type { Plan, PlanItem } from "./plan";
+import { formatPlDate, MODE_LABEL, type Plan, type PlanItem } from "./plan";
 import { PATH_KIND_LABEL, type Instruction, type Path } from "./types";
 
 /**
@@ -363,13 +363,14 @@ export async function checklistPdf(ins: Instruction, p: Path, checked: string[],
 /** Pozycja planu: kwadrat do odhaczenia, tytuł i (opcjonalnie) krótkie wyjaśnienie. */
 function planItem(doc: Doc, it: PlanItem) {
   const tw = CW - 26;
-  const lh = doc.font("B").fontSize(10.5).heightOfString(it.label, { width: tw });
+  const lh = doc.font("B").fontSize(10.5).heightOfString(it.label, { width: tw - (it.due ? 50 : 0) });
   const dh = it.detail ? doc.font("R").fontSize(9).heightOfString(it.detail, { width: tw }) + 2 : 0;
   ensure(doc, lh + dh + 10);
   const y = doc.y;
   doc.save().rect(M, y + 1, 12, 12).lineWidth(1.2).strokeColor(it.urgent ? URGENT : NAVY).stroke().restore();
   if (it.done) doc.save().moveTo(M + 2.5, y + 7.5).lineTo(M + 5.2, y + 10.5).lineTo(M + 10.5, y + 3).lineWidth(2).strokeColor(GOLD).stroke().restore();
-  doc.font("B").fontSize(10.5).fillColor(it.urgent ? URGENT : NAVY).text(it.label, M + 22, y, { width: tw });
+  if (it.due) doc.font("B").fontSize(9).fillColor(it.urgent ? URGENT : MUTED).text(formatPlDate(it.due).slice(0, 5), W - M - 44, y + 1, { width: 44, align: "right" });
+  doc.font("B").fontSize(10.5).fillColor(it.urgent ? URGENT : NAVY).text(it.label, M + 22, y, { width: tw - (it.due ? 50 : 0) });
   if (it.detail) doc.font("R").fontSize(9).fillColor(MUTED).text(it.detail, M + 22, doc.y + 1, { width: tw });
   doc.y += 8;
   doc.x = M;
@@ -381,19 +382,24 @@ export async function planPdf(ins: Instruction, plan: Plan, opts: { url: string;
   doc.font("X").fontSize(11).fillColor(NAVY).text("INSTRUKCJE PRAWNE", M, M, { characterSpacing: 1.6, continued: true }).fillColor(GOLD).text(".");
   doc.moveDown(2);
   doc.font("B").fontSize(10).fillColor(MUTED).text(ins.title, { width: CW - 140 });
-  doc.font("X").fontSize(28).fillColor(NAVY).text(plan.title, { width: CW - 140 });
-  doc.font("R").fontSize(11).fillColor(MUTED).text(`Droga: ${plan.pathName} · przygotowano ${new Date().toLocaleDateString("pl-PL")} · ${plan.doneCount} z ${plan.total} zrobione`, { width: CW - 140 });
+  doc.font("X").fontSize(26).fillColor(NAVY).text(plan.heading, { width: CW - 140 });
+  doc.font("R").fontSize(10.5).fillColor(MUTED).text(`Droga: ${plan.pathName} · ${MODE_LABEL[plan.mode]}`, { width: CW - 140 });
+  doc.text(`Harmonogram: ${formatPlDate(plan.startDate)} – ${formatPlDate(plan.endDate)} · ${plan.doneCount} z ${plan.total} zrobione`, { width: CW - 140 });
+  if (plan.deadline) doc.font("B").fillColor(URGENT).text(`Termin w sprawie: ${formatPlDate(plan.deadline.date)}`, { width: CW - 140 });
   illustration(doc, "checklist", W - M - 120, M + 26, 120);
   doc.y = Math.max(doc.y + 14, M + 150);
 
-  if (plan.situation.length || plan.decisions.length) {
-    sectionTitle(doc, "A", "Twoja sytuacja", "Na podstawie odpowiedzi w instrukcji.");
-    for (const s of plan.situation) {
-      ensure(doc, 34);
-      doc.font("B").fontSize(10).fillColor(NAVY).text(`${s.question} – ${s.answer}`, { width: CW });
-      doc.font("R").fontSize(9).fillColor(MUTED).text(s.meaning, { width: CW });
-      doc.moveDown(0.4);
-    }
+  sectionTitle(doc, "A", "Twoja sytuacja w skrócie");
+  bullets(doc, plan.summary, { size: 10 });
+  doc.moveDown(0.5);
+  ensure(doc, 40);
+  doc.font("B").fontSize(10).fillColor(NAVY).text("Dlaczego ta droga: ", M, doc.y, { continued: true, width: CW }).font("R").text(plan.reason);
+  doc.moveDown(0.8);
+
+  if (plan.decisions.length) {
+    ensure(doc, 30);
+    doc.font("B").fontSize(9).fillColor(MUTED).text("TWOJE ODPOWIEDZI", M, doc.y, { characterSpacing: 1 });
+    doc.moveDown(0.3);
     for (const d of plan.decisions) {
       ensure(doc, 20);
       doc.font("R").fontSize(10).fillColor(NAVY).text(`${d.question} `, { width: CW, continued: true }).font("B").text(d.answer);
