@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Download, ListChecks, Printer } from "lucide-react";
+import { Check, Download, ListChecks, MessageCircle, Printer } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Illustration } from "@/components/ui/Illustration";
 import { StepNumber } from "@/components/ui/StepNumber";
@@ -9,6 +9,7 @@ import { PATH_KIND_LABEL, type Instruction, type Path } from "@/lib/types";
 import { DecisionTree } from "./DecisionTree";
 import { buildPlan, encodePlan, planPdfHref, planTitle, type PlanInput } from "@/lib/plan";
 import { ExpertChat, type ChatAttachment, type ChatExpert } from "./ExpertChat";
+import { PlanModal } from "./PlanModal";
 import { PlanPanel } from "./PlanPanel";
 import { PlanWizard, type PlanConfig } from "./PlanWizard";
 import { MobilePlanBar } from "./MobilePlanBar";
@@ -72,7 +73,8 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
   const [treeAnswers, setTreeAnswers] = useState<string[]>([]);
   /** odpowiedzi z kreatora planu; null = planu jeszcze nie ma */
   const [planCfg, setPlanCfg] = useState<PlanConfig | null>(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
+  /** okno planu: kreator pytań albo gotowy plan */
+  const [modal, setModal] = useState<null | "wizard" | "plan">(null);
   const [planTicks, setPlanTicks] = useState<string[]>([]);
   const [attachment, setAttachment] = useState<ChatAttachment | null>(null);
   const path = ins.paths.find((p) => p.id === selected) ?? ins.paths[0];
@@ -132,13 +134,12 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
   const plan = useMemo(() => (planInput ? buildPlan(ins, planInput) : null), [ins, planInput]);
   const planCode = useMemo(() => (plan && planInput ? encodePlan({ ...planInput, p: plan.pathId }) : ""), [plan, planInput]);
   const planLabel = `Wygeneruj bezpłatnie ${planTitle(ins)}`;
-  const scrollToPlan = () => requestAnimationFrame(() => document.getElementById("plan")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+
 
   /** otwiera kreator z tym, co już wiadomo (sekcja A, drzewo decyzji, wybrana droga) */
   const generatePlan = (source: string) => {
     track("plan_generated", { instructionSlug: ins.slug, pathId: path.id, props: { source } });
-    setWizardOpen(true);
-    scrollToPlan();
+    setModal("wizard");
   };
   const wizardInitial: PlanConfig = planCfg
     ? { ...planCfg, o: treeAnswers.length > planCfg.o.length ? treeAnswers : planCfg.o }
@@ -146,7 +147,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
 
   const finishWizard = (cfg: PlanConfig, docs: string[]) => {
     setPlanCfg(cfg);
-    setWizardOpen(false);
+    setModal("plan");
     // dokumenty i droga wspólne z sekcjami C i D, odpowiedzi z sekcji A – z sekcją A
     const planPath = ins.paths.find((p) => p.id === cfg.p);
     const nextChecked = [...new Set([...checked.filter((id) => !planPath?.documents.some((d) => d.id === id)), ...docs])];
@@ -154,7 +155,6 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     store.set(situationKey(ins.slug), Object.fromEntries(Object.entries(cfg.s).map(([k, v]) => [k, v ? "tak" : "nie"])));
     if (cfg.p !== selected) setSelected(cfg.p);
     persist({ planCfg: cfg, checked: nextChecked, path: cfg.p });
-    scrollToPlan();
   };
 
   const isPlanDone = (id: string) => done.includes(id) || checked.includes(id) || planTicks.includes(id);
@@ -171,6 +171,7 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     if (!plan) return;
     setAttachment({ title: plan.title, code: planCode, href: planPdfHref(ins.slug, planCode), summary: `${plan.pathName} · ${plan.doneCount} z ${plan.total} zrobione` });
     track("plan_discuss_clicked", { instructionSlug: ins.slug, pathId: plan.pathId });
+    setModal(null);
     openExpert("plan");
   };
 
@@ -328,21 +329,30 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
       </section>
 
       {/* Plan – osobista checklista z odpowiedzi */}
-      <section id="plan" aria-label={planTitle(ins)} className="no-print-break pb-12 sm:pb-16">
-        {wizardOpen ? (
-          <PlanWizard ins={ins} initial={wizardInitial} initialDocs={checked} onCancel={() => setWizardOpen(false)} onDone={finishWizard} />
-        ) : plan ? (
-          <PlanPanel
-            plan={plan}
-            pdfHref={planPdfHref(ins.slug, planCode)}
-            isDone={isPlanDone}
-            toggle={togglePlan}
-            onEdit={() => generatePlan("edit")}
-            onDiscuss={lead ? discussPlan : undefined}
-            onPdf={() => track("pdf_downloaded", { instructionSlug: ins.slug, pathId: plan.pathId, props: { source: "plan" } })}
-          />
+      <section id="plan" aria-label={planTitle(ins)} className="no-print pb-12 sm:pb-16">
+        {plan ? (
+          <div className="flex flex-col gap-4 rounded-md border-2 border-navy bg-white p-5 sm:flex-row sm:items-center sm:p-7">
+            <ListChecks className="h-10 w-10 shrink-0" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow">Twój plan</p>
+              <p className="text-lg font-extrabold">{plan.heading}</p>
+              <p className="mt-1 text-sm text-muted">
+                {plan.doneCount} z {plan.total} zrobione · droga: {plan.pathName}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button type="button" className="btn btn-primary" onClick={() => setModal("plan")}>
+                Otwórz plan
+              </button>
+              {lead && (
+                <button type="button" className="btn btn-secondary" onClick={discussPlan}>
+                  Omów z ekspertem
+                </button>
+              )}
+            </div>
+          </div>
         ) : (
-          <div className="no-print flex flex-col gap-4 rounded-md border-2 border-navy bg-white p-5 sm:flex-row sm:items-center sm:p-7">
+          <div className="flex flex-col gap-4 rounded-md border-2 border-navy bg-white p-5 sm:flex-row sm:items-center sm:p-7">
             <ListChecks className="h-10 w-10 shrink-0" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-lg font-extrabold">{planTitle(ins)} – bezpłatnie, w kilka minut</p>
@@ -358,7 +368,39 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
         )}
       </section>
 
-      <MobilePlanBar eyebrow={plan ? `Twój plan · ${plan.doneCount} z ${plan.total} zrobione` : "Wygeneruj bezpłatnie"} title={planTitle(ins)} onClick={() => (plan && !wizardOpen ? scrollToPlan() : generatePlan("mobile-bar"))} />
+      <PlanModal
+        open={modal !== null}
+        title={modal === "plan" && plan ? plan.heading : `${planTitle(ins)} · kilka pytań`}
+        onClose={() => setModal(null)}
+        footer={
+          modal === "plan" && plan ? (
+            lead ? (
+              <button type="button" className="btn btn-primary w-full" onClick={discussPlan}>
+                <MessageCircle className="h-4 w-4" aria-hidden="true" /> Omów bezpłatnie {plan.title} z ekspertem
+              </button>
+            ) : (
+              <a href={planPdfHref(ins.slug, planCode)} target="_blank" rel="noopener" className="btn btn-primary w-full">
+                <Download className="h-4 w-4" aria-hidden="true" /> Pobierz plan (PDF)
+              </a>
+            )
+          ) : undefined
+        }
+      >
+        {modal === "wizard" && <PlanWizard ins={ins} initial={wizardInitial} initialDocs={checked} onCancel={() => setModal(plan ? "plan" : null)} onDone={finishWizard} />}
+        {modal === "plan" && plan && (
+          <PlanPanel
+            plan={plan}
+            pdfHref={planPdfHref(ins.slug, planCode)}
+            isDone={isPlanDone}
+            toggle={togglePlan}
+            onEdit={() => setModal("wizard")}
+            onDiscuss={lead ? discussPlan : undefined}
+            onPdf={() => track("pdf_downloaded", { instructionSlug: ins.slug, pathId: plan.pathId, props: { source: "plan" } })}
+          />
+        )}
+      </PlanModal>
+
+      <MobilePlanBar eyebrow={plan ? `Twój plan · ${plan.doneCount} z ${plan.total} zrobione` : "Wygeneruj bezpłatnie"} title={planTitle(ins)} onClick={() => (plan ? setModal("plan") : generatePlan("mobile-bar"))} />
 
       {/* E — ostrzeżenia (treść z serwera) */}
       {warningsSlot}

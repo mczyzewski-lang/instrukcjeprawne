@@ -37,5 +37,5 @@ test("mobile: dolny pasek „Wygeneruj bezpłatnie Plan …” pojawia się dopi
   await expect(bar).toBeVisible();
   await expect(bar).toHaveAccessibleName(/Wygeneruj bezpłatnie\s*Plan oddłużenia/);
   await bar.click();
-  await expect(page.locator("#plan").getByRole("heading", { name: "Twoja sytuacja" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "Twoja sytuacja" })).toBeVisible();
 });

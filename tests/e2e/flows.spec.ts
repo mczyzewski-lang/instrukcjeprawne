@@ -238,10 +238,10 @@ test("linki zewnętrzne nie wyprowadzają ze strony – adres można skopiować"
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(url);
 });
 
-test("Plan: kreator pytań, spersonalizowany plan, PDF i omówienie z ekspertem w czacie", async ({ page, request }) => {
+test("Plan: kreator pytań w okienku, plan z celem i etapami, PDF i omówienie z ekspertem", async ({ page, request }) => {
   await page.goto("/instrukcje/jak-wyjsc-z-dlugow");
   await page.getByRole("button", { name: "Wygeneruj bezpłatnie Plan oddłużenia" }).last().click();
-  const plan = page.locator("#plan");
+  const plan = page.getByRole("dialog");
   // 1. sytuacja
   await expect(plan.getByRole("heading", { name: "Twoja sytuacja" })).toBeVisible();
   await plan.getByRole("button", { name: "Tak" }).first().click();
@@ -256,24 +256,31 @@ test("Plan: kreator pytań, spersonalizowany plan, PDF i omówienie z ekspertem 
   // 4. dokumenty, które już są
   await plan.locator('input[type="checkbox"]').first().check();
   await plan.getByRole("button", { name: "Dalej" }).click();
-  // 5. jak i kiedy
-  await plan.getByLabel("Z bezpłatną pomocą").check();
+  // 5. termin – z wyjaśnieniem; bez pytań o sposób działania i tempo
+  await expect(plan.getByText(/Termin to ostatni dzień/)).toBeVisible();
+  await expect(plan.getByText("Jak chcesz działać?")).toHaveCount(0);
+  await expect(plan.getByText(/Ile czasu w tygodniu/)).toHaveCount(0);
+  await plan.getByLabel("Nie wiem").check();
   await plan.getByLabel("Imię na planie (opcjonalnie)").fill("Ola");
   await plan.getByRole("button", { name: "Utwórz mój plan" }).click();
 
   await expect(plan.getByRole("heading", { name: "Plan oddłużenia – Ola" })).toBeVisible();
-  await expect(plan.getByText("Twoja sytuacja w skrócie")).toBeVisible();
-  await expect(plan.getByText("Dlaczego ta droga")).toBeVisible();
-  await expect(plan.getByText("Bezpłatna pomoc w Twojej sprawie")).toBeVisible();
-  await expect(plan.getByText(/z \d+ zrobione/).first()).toBeVisible();
+  await expect(plan.getByText("Twój cel")).toBeVisible();
+  await expect(plan.getByText("Gdzie jesteś teraz")).toBeVisible();
+  await expect(plan.getByText("Ustal, czy w sprawie biegnie termin").first()).toBeVisible();
+  await expect(plan.getByRole("heading", { name: "Jak chcesz działać dalej?" })).toBeVisible();
+  await expect(plan.getByText("Koniec planu")).toBeVisible();
+  // przyklejony pasek okna
+  await expect(plan.getByRole("button", { name: "Omów bezpłatnie Plan oddłużenia z ekspertem" })).toBeVisible();
 
   // odhaczenie w planie = odhaczenie kroku w sekcji C
-  const first = plan.locator('section[aria-label^="Kroki"] input[type="checkbox"]').nth(1);
-  await first.check();
+  await plan.locator('section[aria-label^="Działaj"] input[type="checkbox"]').nth(1).check();
+  await plan.getByRole("button", { name: "Zamknij plan" }).click();
   await expect(page.locator("#kroki").getByRole("button", { name: "Zrobione", exact: true })).toHaveCount(1);
   // plan zostaje po odświeżeniu
   await page.reload();
-  await expect(page.locator("#plan").getByRole("heading", { name: "Plan oddłużenia – Ola" })).toBeVisible();
+  await expect(page.locator("#plan").getByText("Plan oddłużenia – Ola")).toBeVisible();
+  await page.locator("#plan").getByRole("button", { name: "Otwórz plan" }).click();
 
   const href = await plan.getByRole("link", { name: "Pobierz plan (PDF)" }).getAttribute("href");
   const pdf = await request.get(href!);
@@ -281,6 +288,7 @@ test("Plan: kreator pytań, spersonalizowany plan, PDF i omówienie z ekspertem 
   expect((await pdf.body()).subarray(0, 4).toString()).toBe("%PDF");
 
   await plan.getByRole("button", { name: "Omów bezpłatnie Plan oddłużenia z ekspertem" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
   const help = page.locator("#pomoc");
   await expect(help.getByText("Do pierwszej wiadomości dołączymy:")).toBeVisible();
   await expect(help.getByRole("link", { name: "Plan oddłużenia.pdf" })).toBeVisible();

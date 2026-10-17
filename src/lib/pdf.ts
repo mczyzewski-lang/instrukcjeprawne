@@ -4,7 +4,7 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import SVGtoPDF from "svg-to-pdfkit";
 import { renderIllustrationSvg } from "@/illustrations/library";
-import { formatPlDate, MODE_LABEL, type Plan, type PlanItem } from "./plan";
+import { formatPlDate, type Plan, type PlanItem } from "./plan";
 import { PATH_KIND_LABEL, type Instruction, type Path } from "./types";
 
 /**
@@ -383,38 +383,55 @@ export async function planPdf(ins: Instruction, plan: Plan, opts: { url: string;
   doc.moveDown(2);
   doc.font("B").fontSize(10).fillColor(MUTED).text(ins.title, { width: CW - 140 });
   doc.font("X").fontSize(26).fillColor(NAVY).text(plan.heading, { width: CW - 140 });
-  doc.font("R").fontSize(10.5).fillColor(MUTED).text(`Droga: ${plan.pathName} · ${MODE_LABEL[plan.mode]}`, { width: CW - 140 });
-  doc.text(`Harmonogram: ${formatPlDate(plan.startDate)} – ${formatPlDate(plan.endDate)} · ${plan.doneCount} z ${plan.total} zrobione`, { width: CW - 140 });
+  doc.font("R").fontSize(10.5).fillColor(MUTED).text(`Droga: ${plan.pathName} · ${formatPlDate(plan.startDate)} – ${formatPlDate(plan.endDate)} · ${plan.doneCount} z ${plan.total} zrobione`, { width: CW - 140 });
   if (plan.deadline) doc.font("B").fillColor(URGENT).text(`Termin w sprawie: ${formatPlDate(plan.deadline.date)}`, { width: CW - 140 });
   illustration(doc, "checklist", W - M - 120, M + 26, 120);
   doc.y = Math.max(doc.y + 14, M + 150);
 
-  sectionTitle(doc, "A", "Twoja sytuacja w skrócie");
-  bullets(doc, plan.summary, { size: 10 });
-  doc.moveDown(0.5);
-  ensure(doc, 40);
-  doc.font("B").fontSize(10).fillColor(NAVY).text("Dlaczego ta droga: ", M, doc.y, { continued: true, width: CW }).font("R").text(plan.reason);
-  doc.moveDown(0.8);
+  // cel
+  const gh = doc.font("X").fontSize(13).heightOfString(plan.goal, { width: CW - 32 });
+  ensure(doc, gh + 40);
+  const gy = doc.y;
+  doc.save().rect(M, gy, CW, gh + 34).fill(NAVY).restore();
+  doc.font("B").fontSize(8.5).fillColor("#FFFFFF").text("TWÓJ CEL", M + 16, gy + 10, { characterSpacing: 1.2 });
+  doc.font("X").fontSize(13).text(plan.goal, M + 16, doc.y + 2, { width: CW - 32 });
+  doc.y = gy + gh + 46;
+  doc.x = M;
 
-  if (plan.decisions.length) {
+  sectionTitle(doc, "A", "Gdzie jesteś teraz");
+  bullets(doc, plan.now, { size: 10 });
+  doc.moveDown(0.4);
+  if (plan.gains.length) {
     ensure(doc, 30);
-    doc.font("B").fontSize(9).fillColor(MUTED).text("TWOJE ODPOWIEDZI", M, doc.y, { characterSpacing: 1 });
-    doc.moveDown(0.3);
-    for (const d of plan.decisions) {
-      ensure(doc, 20);
-      doc.font("R").fontSize(10).fillColor(NAVY).text(`${d.question} `, { width: CW, continued: true }).font("B").text(d.answer);
-      doc.moveDown(0.2);
-    }
-    if (plan.uncertain) doc.font("B").fontSize(9).fillColor(URGENT).text("Część odpowiedzi to „nie wiem” – wynik jest niepełny.", { width: CW });
-    doc.moveDown(1);
+    doc.font("B").fontSize(10).fillColor(NAVY).text("Co jeszcze zyskasz", M, doc.y);
+    bullets(doc, plan.gains, { size: 10 });
   }
+  ensure(doc, 40);
+  doc.font("B").fontSize(10).fillColor(NAVY).text("Dlaczego ta droga: ", M, doc.y + 4, { continued: true, width: CW }).font("R").text(plan.reason);
+  if (plan.costOfWaiting.length) {
+    doc.moveDown(0.6);
+    ensure(doc, 30);
+    doc.font("B").fontSize(10).fillColor(URGENT).text("Ile kosztuje zwlekanie", M, doc.y);
+    bullets(doc, plan.costOfWaiting, { size: 9.5 });
+  }
+  doc.moveDown(1);
 
   plan.sections.forEach((s, i) => {
-    ensure(doc, 70);
-    sectionTitle(doc, String(i + 1), s.title);
+    ensure(doc, 80);
+    sectionTitle(doc, String(i + 1), s.kicker ? `${s.kicker}: ${s.title}` : s.title, s.why);
     for (const it of s.items) planItem(doc, it);
     doc.moveDown(0.8);
   });
+
+  // co dalej
+  ensure(doc, 140);
+  sectionTitle(doc, "?", "Jak chcesz działać dalej?", "Plan jest Twój bez względu na wybór.");
+  bullets(doc, [
+    "Samodzielnie – odhaczaj zadania z tego planu, zaczynając od etapu 1.",
+    `Z bezpłatną pomocą – ${plan.freeHelp.slice(0, 2).map((h) => h.name + (h.phone ? ` (tel. ${h.phone})` : "")).join("; ") || "nieodpłatna pomoc prawna w Twoim powiecie"}. Weź ten plan na spotkanie.`,
+    `Z ekspertem – omów plan bezpłatnie na ${opts.url} (sekcja „Potrzebujesz pomocy?”). Pierwsza rozmowa do niczego nie zobowiązuje.`,
+  ], { size: 10 });
+  doc.moveDown(1);
 
   ensure(doc, 110);
   const y = doc.y + 6;
@@ -422,7 +439,7 @@ export async function planPdf(ins: Instruction, plan: Plan, opts: { url: string;
   doc.font("B").fontSize(10).fillColor(NAVY).text("Ten plan online (z Twoimi odpowiedziami):", M + 86, y + 6, { width: CW - 86 });
   doc.font("R").fontSize(9).fillColor(MUTED).text(opts.url, M + 86, doc.y + 2, { width: CW - 86 });
   doc.font("R").fontSize(8.5).fillColor(MUTED).text(
-    "Plan powstał automatycznie z odpowiedzi w instrukcji. To informacja ogólna, nie ocena prawna Twojej sprawy – omów go z ekspertem lub w punkcie nieodpłatnej pomocy prawnej.",
+    "Plan powstał automatycznie z odpowiedzi w instrukcji. Daty są propozycją. To informacja ogólna, nie ocena prawna Twojej sprawy.",
     M + 86,
     doc.y + 8,
     { width: CW - 86 },

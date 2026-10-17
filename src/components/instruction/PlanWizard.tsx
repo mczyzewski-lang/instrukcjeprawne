@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { resolve } from "@/lib/decision-engine";
-import { MODE_LABEL, planTitle, todayIso, type PlanInput, type PlanMode, type PlanStart } from "@/lib/plan";
+import { todayIso, type PlanDeadlineStatus, type PlanInput, type PlanStart } from "@/lib/plan";
 import { PATH_KIND_LABEL, type Instruction } from "@/lib/types";
 
 export type PlanConfig = Omit<PlanInput, "d">;
@@ -17,7 +17,7 @@ interface Props {
   onDone: (cfg: PlanConfig, docs: string[]) => void;
 }
 
-const STEPS = ["Twoja sytuacja", "Twoja sprawa", "Droga", "Dokumenty", "Jak i kiedy"] as const;
+const STEPS = ["Twoja sytuacja", "Twoja sprawa", "Droga", "Dokumenty", "Termin"] as const;
 
 function Choice({ name, value, current, onChange, label, hint }: { name: string; value: string; current: string | undefined; onChange: (v: string) => void; label: string; hint?: string }) {
   const on = current === value;
@@ -34,7 +34,7 @@ function Choice({ name, value, current, onChange, label, hint }: { name: string;
 
 /**
  * Kreator „Planu …”: kilka pytań, po których plan jest dopasowany do sytuacji –
- * sytuacja, drzewo decyzji, droga, posiadane dokumenty, sposób działania, start, tempo i termin.
+ * sytuacja, drzewo decyzji, droga, posiadane dokumenty, termin w sprawie i start.
  */
 export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Props) {
   const ids = useId();
@@ -62,10 +62,10 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
   const next = () => (last ? onDone({ ...cfg, g: todayIso() }, docs) : setStep((s) => s + 1));
 
   return (
-    <div className="card overflow-hidden">
+    <div className="flex min-h-full flex-col">
       <div className="border-b border-line px-5 py-5 sm:px-7">
-        <p className="eyebrow">{planTitle(ins)} · kilka pytań</p>
-        <h3 ref={headingRef} tabIndex={-1} className="mt-1 text-2xl font-extrabold outline-none">
+        <p className="eyebrow">Krok {step + 1} z {STEPS.length}</p>
+        <h3 ref={headingRef} tabIndex={-1} data-autofocus className="mt-1 text-2xl font-extrabold outline-none">
           {STEPS[step]}
         </h3>
         <div className="mt-4 flex items-center gap-3" aria-hidden="true">
@@ -81,7 +81,7 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
         </p>
       </div>
 
-      <div className="px-5 py-6 sm:px-7">
+      <div className="flex-1 px-5 py-6 sm:px-7">
         {step === 0 && (
           <div className="grid gap-3">
             <p className="text-sm text-muted">Zaznacz, co pasuje do Ciebie. Na tej podstawie ustawimy kolejność zadań.</p>
@@ -207,19 +207,42 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
         {step === 4 && (
           <div className="grid gap-6">
             <fieldset className="grid gap-2">
-              <legend className="mb-2 font-extrabold">Jak chcesz działać?</legend>
-              {(["self", "free", "expert"] as PlanMode[]).map((m) => (
+              <legend className="mb-1 font-extrabold">Czy w Twojej sprawie biegnie jakiś termin?</legend>
+              <p className="mb-2 text-sm text-muted">
+                Termin to ostatni dzień, w którym trzeba coś zrobić – złożyć pismo, odpowiedzieć albo podjąć decyzję. Po nim tracisz możliwość działania albo
+                sprawa toczy się bez Ciebie. Przykłady: 14 dni na sprzeciw od nakazu zapłaty, tydzień na skargę na czynność komornika, 6 miesięcy na decyzję
+                o spadku. Termin znajdziesz zwykle w pouczeniu na końcu pisma.
+              </p>
+              {(
+                [
+                  ["yes", "Tak, znam datę", "Ułożymy pilne zadania przed tym dniem."],
+                  ["unknown", "Nie wiem", "Dodamy jako pierwsze zadanie: ustal, czy i do kiedy biegnie termin."],
+                  ["no", "Nie, nic mnie nie goni", "Plan rozłożymy spokojnie – zadanie co kilka dni."],
+                ] as [PlanDeadlineStatus, string, string][]
+              ).map(([v, l, h]) => (
                 <Choice
-                  key={m}
-                  name={`${ids}-tryb`}
-                  value={m}
-                  current={cfg.m ?? "self"}
-                  onChange={(v) => set({ m: v as PlanMode })}
-                  label={MODE_LABEL[m]}
-                  hint={m === "self" ? "Plan krok po kroku do zrobienia na własną rękę." : m === "free" ? "Dodamy bezpłatne punkty pomocy do planu." : "Dodamy bezpłatną rozmowę z ekspertem, który zobaczy ten plan."}
+                  key={v}
+                  name={`${ids}-termin-status`}
+                  value={v}
+                  current={cfg.ds ?? (cfg.dl ? "yes" : undefined)}
+                  onChange={(x) => set({ ds: x as PlanDeadlineStatus, dl: x === "yes" ? cfg.dl : undefined })}
+                  label={l}
+                  hint={h}
                 />
               ))}
             </fieldset>
+            {(cfg.ds === "yes" || (!cfg.ds && cfg.dl)) && (
+              <div>
+                <label htmlFor={`${ids}-termin`} className="field-label">
+                  Ostatni dzień terminu
+                </label>
+                <input id={`${ids}-termin`} type="date" min={todayIso()} value={cfg.dl ?? ""} onChange={(e) => set({ dl: e.target.value || undefined })} className="field-input sm:max-w-xs" aria-describedby={`${ids}-termin-h`} />
+                <p id={`${ids}-termin-h`} className="mt-1 text-xs text-muted">
+                  Jak policzyć: od dnia odebrania pisma dodaj liczbę dni z pouczenia (np. odebrane 3.11 + 14 dni = 17.11). Gdy ostatni dzień wypada w sobotę lub
+                  święto, zwykle przesuwa się na najbliższy dzień roboczy – w razie wątpliwości wpisz wcześniejszą datę.
+                </p>
+              </div>
+            )}
             <fieldset className="grid gap-2">
               <legend className="mb-2 font-extrabold">Kiedy zaczynasz?</legend>
               {(
@@ -232,41 +255,18 @@ export function PlanWizard({ ins, initial, initialDocs, onCancel, onDone }: Prop
                 <Choice key={v} name={`${ids}-start`} value={v} current={cfg.t ?? "now"} onChange={(x) => set({ t: x as PlanStart })} label={l} />
               ))}
             </fieldset>
-            <fieldset className="grid gap-2">
-              <legend className="mb-2 font-extrabold">Ile czasu w tygodniu możesz na to poświęcić?</legend>
-              {(
-                [
-                  ["1", "Około godziny", "ok. 2 zadania w tygodniu"],
-                  ["2", "Kilka godzin", "ok. 4 zadania w tygodniu"],
-                  ["3", "Tyle, ile trzeba", "zadanie co dzień"],
-                ] as const
-              ).map(([v, l, h]) => (
-                <Choice key={v} name={`${ids}-tempo`} value={v} current={String(cfg.h ?? 1)} onChange={(x) => set({ h: Number(x) as 1 | 2 | 3 })} label={l} hint={h} />
-              ))}
-            </fieldset>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor={`${ids}-termin`} className="field-label">
-                  Termin w sprawie <span className="font-normal text-muted">(opcjonalnie)</span>
-                </label>
-                <input id={`${ids}-termin`} type="date" min={todayIso()} value={cfg.dl ?? ""} onChange={(e) => set({ dl: e.target.value || undefined })} className="field-input" aria-describedby={`${ids}-termin-h`} />
-                <p id={`${ids}-termin-h`} className="mt-1 text-xs text-muted">
-                  Np. ostatni dzień na odpowiedź z pisma. Pilne zadania ustawimy przed tą datą.
-                </p>
-              </div>
-              <div>
-                <label htmlFor={`${ids}-imie`} className="field-label">
-                  Imię na planie <span className="font-normal text-muted">(opcjonalnie)</span>
-                </label>
-                <input id={`${ids}-imie`} value={cfg.n ?? ""} maxLength={40} onChange={(e) => set({ n: e.target.value.replace(/[^\p{L} '-]/gu, "") || undefined })} autoComplete="given-name" className="field-input" />
-                <p className="mt-1 text-xs text-muted">Zostaje tylko na tym urządzeniu i w Twoim PDF.</p>
-              </div>
+            <div className="sm:max-w-sm">
+              <label htmlFor={`${ids}-imie`} className="field-label">
+                Imię na planie <span className="font-normal text-muted">(opcjonalnie)</span>
+              </label>
+              <input id={`${ids}-imie`} value={cfg.n ?? ""} maxLength={40} onChange={(e) => set({ n: e.target.value.replace(/[^\p{L} '-]/gu, "") || undefined })} autoComplete="given-name" className="field-input" />
+              <p className="mt-1 text-xs text-muted">Zostaje tylko na tym urządzeniu i w Twoim PDF.</p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-line bg-canvas px-5 py-4 sm:px-7">
+      <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-line bg-canvas px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-7">
         <button type="button" className="btn btn-ghost min-h-10 text-sm" onClick={() => (step === 0 ? onCancel() : setStep((s) => s - 1))}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {step === 0 ? "Anuluj" : "Wstecz"}
         </button>
