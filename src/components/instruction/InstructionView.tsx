@@ -122,20 +122,22 @@ export function InstructionView({ ins, reviewed, preview = false }: { ins: Instr
 
       <SectionStickyBar sections={sticky} />
 
-      <nav aria-label="Sekcje instrukcji" className="no-print -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-2 text-sm font-semibold">
-        {[
-          ["#sekcja-a", "A Sytuacja"],
-          ["#sekcja-b", "B Drogi"],
-          ["#kroki", "C Kroki"],
-          ["#dokumenty", "D Dokumenty"],
-          ["#uwaga", "E Uwaga"],
-          ["#pomoc", "F Pomoc"],
-          ["#zrodla", "Źródła"],
-        ].map(([href, label]) => (
-          <a key={href} href={href} className="badge min-h-9 shrink-0 px-3 text-sm text-navy no-underline hover:border-navy">
-            {label}
-          </a>
-        ))}
+      <nav aria-label="Sekcje instrukcji" className="no-print mb-6">
+        <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+          {sticky.map((sec) => (
+            <li key={sec.id} className="shrink-0">
+              <a
+                href={`#${sec.id}`}
+                className="flex min-h-12 items-center gap-2.5 rounded-sm border-2 border-line bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-bold no-underline transition-colors hover:border-navy"
+              >
+                <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border-2 border-navy text-sm font-extrabold">
+                  {sec.symbol}
+                </span>
+                {sec.title}
+              </a>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       <section aria-labelledby="sekcja-a" className="border-t border-line py-12 sm:py-16">
