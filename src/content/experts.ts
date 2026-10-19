@@ -11,7 +11,7 @@ const draft = (e: Omit<Expert, "status" | "photoFile">): Expert => ({ ...e, stat
 export const SEED_EXPERTS: Expert[] = [
   draft({
     id: "ekspert-dlugi",
-    name: "Ekspert ds. długów i upadłości",
+    name: "Marek Banaszak",
     title: "Tytuł zawodowy – do uzupełnienia",
     role: "Nadzór merytoryczny: długi, komornik, kredyty",
     bio: "Krótki opis doświadczenia eksperta – do uzupełnienia w panelu.",

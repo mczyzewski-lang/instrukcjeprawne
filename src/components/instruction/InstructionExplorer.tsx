@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Download, ListChecks, MessageCircle, Printer } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Check, ChevronLeft, ChevronRight, Download, ListChecks, MessageCircle, Printer } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Illustration } from "@/components/ui/Illustration";
 import { StepNumber } from "@/components/ui/StepNumber";
 import { store, track } from "@/lib/analytics-client";
@@ -203,21 +203,21 @@ export function InstructionExplorer({ instruction: ins, approved, lead, instruct
     <>
       {/* B — drogi */}
       <section aria-labelledby="sekcja-b" className="border-t border-line py-12 sm:py-16">
-        <SectionHeading letter="B" id="sekcja-b" title={`Wybierz instrukcję (${ins.paths.length} ${ins.paths.length === 1 ? "możliwość" : "możliwości"})`} lead="Każda instrukcja to inna droga – z własnymi warunkami, kosztami i ryzykiem. Nie wiesz, którą wybrać? Odpowiedz na kilka pytań – podpowiemy." />
-        <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div className="lg:sticky lg:top-32 lg:self-start">
-            <DecisionTree
-              tree={ins.decisionTree}
-              instructionSlug={ins.slug}
-              pathNames={pathNames}
-              instructionTitles={instructionTitles}
-              onSelectPath={(id) => selectPath(id)}
-              onResult={onResult}
-              onAnswersChange={setTreeAnswers}
-              planCta={{ label: planLabel, onClick: () => generatePlan("decision-tree") }}
-            />
-          </div>
-          <PathMap paths={ins.paths} highlighted={highlighted} selected={selected} onSelect={selectPath} sourceNumbers={sourceNumbers} />
+        <SectionHeading letter="B" id="sekcja-b" title={`Wybierz instrukcję (${ins.paths.length} ${ins.paths.length === 1 ? "możliwość" : "możliwości"})`} lead="Każda instrukcja to inna droga – z własnymi warunkami, kosztami i ryzykiem. Nie wiesz, którą wybrać? Pod listą są pytania – wskażemy pasujące." />
+        <div className="mt-8">
+          <PathSlider paths={ins.paths} highlighted={highlighted} selected={selected} onSelect={selectPath} sourceNumbers={sourceNumbers} />
+        </div>
+        <div className="mt-10 max-w-3xl">
+          <DecisionTree
+            tree={ins.decisionTree}
+            instructionSlug={ins.slug}
+            pathNames={pathNames}
+            instructionTitles={instructionTitles}
+            onSelectPath={(id) => selectPath(id)}
+            onResult={onResult}
+            onAnswersChange={setTreeAnswers}
+            planCta={{ label: planLabel, onClick: () => generatePlan("decision-tree") }}
+          />
         </div>
       </section>
 
@@ -451,7 +451,7 @@ function readSituation(slug: string): PlanInput["s"] {
   return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, v === "tak" ? 1 : 0])) as PlanInput["s"];
 }
 
-function PathMap({
+function PathSlider({
   paths,
   highlighted,
   selected,
@@ -464,37 +464,75 @@ function PathMap({
   onSelect: (id: string) => void;
   sourceNumbers: Record<string, number>;
 }) {
+  const track = useRef<HTMLUListElement>(null);
   const matched = highlighted.map((id) => paths.find((p) => p.id === id)).filter((p): p is Path => Boolean(p));
-  const others = paths.filter((p) => !highlighted.includes(p.id));
   const filtered = matched.length > 0;
-  const renderCard = (p: Path) => {
-    const idx = paths.indexOf(p);
-    const hl = highlighted.includes(p.id);
-    return (
-      <li key={p.id} className="relative pt-4">
-              <span aria-hidden="true" className="absolute -left-6 top-10 h-0.5 w-6 bg-navy" />
-              <div className={`card p-4 sm:p-5 ${hl ? "border-2 border-gold" : ""} ${selected === p.id ? "ring-2 ring-navy ring-offset-2" : ""}`}>
-                <div className="flex gap-4">
-                  <Illustration id={p.illustration} decorative className="hidden w-20 shrink-0 sm:block" />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-extrabold tabular-nums text-muted">{String(idx + 1).padStart(2, "0")}</span>
-                      <span className="badge">{PATH_KIND_LABEL[p.kind]}</span>
-                      {hl && <span className="badge border-gold text-navy">Pasuje do odpowiedzi</span>}
-                    </p>
-                    <h3 className="mt-2 text-lg font-extrabold leading-snug">{p.name}</h3>
-                    <p className="mt-1 text-sm text-muted">
-                      {p.summary}
-                      <SourceRefs ids={p.sourceReferences} numbers={sourceNumbers} />
-                    </p>
-                  </div>
+  const ordered = filtered ? [...matched, ...paths.filter((p) => !highlighted.includes(p.id))] : paths;
+  const hlKey = highlighted.join(",");
+
+  // po wyniku pytań pasujące instrukcje są na początku – przewijamy slider do startu
+  useEffect(() => {
+    track.current?.scrollTo({ left: 0, behavior: "smooth" });
+  }, [hlKey]);
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = track.current;
+    if (!el) return;
+    const card = el.querySelector("li");
+    el.scrollBy({ left: dir * ((card?.clientWidth ?? 320) + 16), behavior: "smooth" });
+  };
+
+  return (
+    <div id="lista-instrukcji">
+      <div className="flex flex-wrap items-center gap-3" aria-live="polite">
+        <p className="text-sm text-muted">
+          {filtered ? (
+            <>
+              <span className="rounded-sm bg-gold-soft px-2 py-0.5 font-bold text-navy">Pasuje do Twoich odpowiedzi: {matched.length}</span> z {paths.length} – są na początku listy.
+            </>
+          ) : (
+            <>Przewiń w bok, żeby zobaczyć wszystkie {paths.length}.</>
+          )}
+        </p>
+        <div className="ml-auto flex gap-2">
+          <button type="button" onClick={() => scrollBy(-1)} aria-label="Poprzednie instrukcje" className="flex h-11 w-11 items-center justify-center rounded-sm border-2 border-line bg-white hover:border-navy">
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => scrollBy(1)} aria-label="Następne instrukcje" className="flex h-11 w-11 items-center justify-center rounded-sm border-2 border-line bg-white hover:border-navy">
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+      <ul
+        ref={track}
+        aria-label="Instrukcje do wyboru"
+        className="-mx-4 mt-3 flex snap-x snap-mandatory scroll-px-4 items-start gap-4 overflow-x-auto px-4 pt-1.5 pb-3 sm:-mx-1.5 sm:scroll-px-1.5 sm:px-1.5"
+      >
+        {ordered.map((p) => {
+          const idx = paths.indexOf(p);
+          const hl = highlighted.includes(p.id);
+          return (
+            <li key={p.id} className="w-[85%] shrink-0 snap-start sm:w-[340px]">
+              <div className={`card flex h-full flex-col p-5 ${hl ? "border-2 border-gold" : ""} ${selected === p.id ? "ring-2 ring-navy ring-offset-2" : ""}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-extrabold tabular-nums text-muted">{String(idx + 1).padStart(2, "0")}</span>
+                    <span className="badge">{PATH_KIND_LABEL[p.kind]}</span>
+                    {hl && <span className="badge border-gold text-navy">Pasuje</span>}
+                  </p>
+                  <Illustration id={p.illustration} decorative className="w-16 shrink-0" />
                 </div>
+                <h3 className="mt-2 text-lg font-extrabold leading-snug">{p.name}</h3>
+                <p className="mt-1 flex-1 text-sm text-muted">
+                  {p.summary}
+                  <SourceRefs ids={p.sourceReferences} numbers={sourceNumbers} />
+                </p>
                 <details className="group mt-3">
                   <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-bold underline [&::-webkit-details-marker]:hidden">
                     <span className="group-open:hidden">Pokaż szczegóły</span>
                     <span className="hidden group-open:inline">Ukryj szczegóły</span>
                   </summary>
-                  <div className="mt-3 grid gap-5 sm:grid-cols-2">
+                  <div className="mt-2 grid gap-4">
                     <Facts title="Dla kogo może mieć sens?" items={p.whenApplicable} />
                     <Facts title="Kiedy raczej się nie sprawdzi?" items={p.whenNotApplicable} />
                     <Facts title="Co można zyskać?" items={p.benefits} />
@@ -502,45 +540,20 @@ function PathMap({
                     <Facts title="Koszty" items={p.costs} />
                     <Facts title="Warunki" items={p.requirements} />
                   </div>
-                  <p className="mt-5 rounded-md bg-canvas px-4 py-3 text-sm">
+                  <p className="mt-4 rounded-md bg-canvas px-3 py-2.5 text-sm">
                     <strong>Pierwszy krok: </strong>
                     {p.firstStep}
                   </p>
                 </details>
-                <button type="button" className="btn btn-secondary mt-3 min-h-10 w-full px-3 py-2 text-sm sm:w-auto" onClick={() => onSelect(p.id)}>
+                <button type="button" className="btn btn-secondary mt-3 min-h-10 w-full px-3 py-2 text-sm" onClick={() => onSelect(p.id)}>
                   Instrukcja krok po kroku ({p.steps.length}) →
                 </button>
               </div>
-      </li>
-    );
-  };
-  return (
-    <div aria-live="polite">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex min-h-11 items-center rounded-sm bg-navy px-4 font-bold text-white">Wybierz instrukcję</span>
-        <span className="text-sm text-muted">
-          {filtered ? (
-            <>
-              <span className="font-bold text-navy">pasuje {matched.length}</span> z {paths.length} – według Twoich odpowiedzi
-            </>
-          ) : (
-            <>
-              → {paths.length} {paths.length === 1 ? "możliwość" : "możliwości"}
-              <span className="hidden lg:inline"> · odpowiedz na pytania po lewej, a zawęzimy listę</span>
-            </>
-          )}
-        </span>
-      </div>
-      <ol className="relative mt-2 ml-5 border-l-2 border-navy pl-6">{(filtered ? matched : paths).map(renderCard)}</ol>
-      {filtered && others.length > 0 && (
-        <details className="group mt-4">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-bold underline [&::-webkit-details-marker]:hidden">
-            <span className="group-open:hidden">Pokaż pozostałe instrukcje ({others.length})</span>
-            <span className="hidden group-open:inline">Ukryj pozostałe instrukcje</span>
-          </summary>
-          <ol className="relative mt-2 ml-5 border-l-2 border-line pl-6 opacity-80">{others.map(renderCard)}</ol>
-        </details>
-      )}
+            </li>
+          );
+        })}
+        <li aria-hidden="true" className="w-1 shrink-0 sm:hidden" />
+      </ul>
     </div>
   );
 }

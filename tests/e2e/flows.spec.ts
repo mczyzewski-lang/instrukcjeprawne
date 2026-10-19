@@ -163,9 +163,10 @@ test("drzewo decyzji zawęża listę instrukcji w sekcji B", async ({ page }) =>
   await expect(b.getByRole("heading", { name: /Wybierz instrukcję \(\d+ możliwości\)/ })).toBeVisible();
   const tree = page.locator("#drzewo");
   for (let i = 0; i < 8 && (await tree.locator("fieldset").count()) > 0; i++) await tree.locator("fieldset li button").first().click();
-  await expect(b.getByText(/pasuje \d+/)).toBeVisible();
-  await expect(b.getByText(/Pokaż pozostałe instrukcje \(\d+\)/)).toBeVisible();
-  await expect(tree.getByText(/jest zawężona do pasujących/)).toBeVisible();
+  await expect(b.getByText(/Pasuje do Twoich odpowiedzi: \d+/)).toBeVisible();
+  await expect(tree.getByText(/są teraz na początku listy powyżej/)).toBeVisible();
+  // pierwsza karta na liście to instrukcja pasująca do odpowiedzi
+  await expect(b.getByRole("list", { name: "Instrukcje do wyboru" }).getByRole("listitem").first().getByText("Pasuje", { exact: true })).toBeVisible();
 });
 
 test("SEO: treści robocze mają noindex, sitemap zawiera tylko zatwierdzone", async ({ page, request }) => {

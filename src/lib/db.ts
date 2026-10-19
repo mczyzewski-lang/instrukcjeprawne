@@ -217,6 +217,10 @@ function seed(db: DatabaseSync) {
     for (const q of SEED_QUESTIONS) if (q.status !== "draft") upgradeQ.run(q.status, q.title, JSON.stringify(q), now, q.id);
     for (const l of LEAD_CONFIGURATIONS) insLead.run(l.topic, JSON.stringify(l));
     for (const e of SEED_EXPERTS) insExpert.run(e.id, JSON.stringify(e), now);
+    // imię i nazwisko eksperta dodane po pierwszym wdrożeniu – tylko w miejsce nazwy zastępczej (bez nadpisywania edycji z panelu)
+    for (const e of SEED_EXPERTS)
+      if (!e.name.startsWith("Ekspert ds."))
+        db.prepare("UPDATE experts SET json = json_set(json, '$.name', ?), updated_at = ? WHERE id = ? AND json_extract(json, '$.name') LIKE 'Ekspert ds.%'").run(e.name, now, e.id);
     db.exec("COMMIT");
   } catch (e) {
     db.exec("ROLLBACK");

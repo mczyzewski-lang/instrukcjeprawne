@@ -103,11 +103,9 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
       <div className="border-b border-line px-5 py-4 sm:px-7">
         <p className="eyebrow">Nie wiesz, którą instrukcję wybrać?</p>
         <p className="mt-1 text-lg font-extrabold">
-          Odpowiedz na {state.progress.total} {state.progress.total < 5 ? "pytania" : "pytań"} – zawęzimy listę instrukcji
-          <span className="hidden lg:inline"> obok</span>
-          <span className="lg:hidden"> poniżej</span>
+          Odpowiedz na {state.progress.total} {state.progress.total < 5 ? "pytania" : "pytań"} – wskażemy pasujące instrukcje
         </p>
-        <p className="mt-1 text-sm text-muted">Pasujące instrukcje zaznaczymy i przesuniemy na górę listy. To orientacja, nie ocena prawna.</p>
+        <p className="mt-1 text-sm text-muted">Pasujące zaznaczymy i przesuniemy na początek listy powyżej. To orientacja, nie ocena prawna.</p>
         <div className="mt-4 flex items-center gap-3" aria-hidden="true">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
             <div className="h-full bg-navy transition-[width]" style={{ width: `${state.complete ? 100 : pct}%` }} />
@@ -154,9 +152,11 @@ export function DecisionTree({ tree, instructionSlug, pathNames, instructionTitl
             <h3 ref={headingRef} tabIndex={-1} className="text-xl font-extrabold outline-none sm:text-2xl">
               Drogi warte sprawdzenia w Twojej sytuacji
             </h3>
-            <p className="mt-2 rounded-sm bg-gold-soft px-3 py-2 text-sm font-semibold">
-              Lista instrukcji <span className="hidden lg:inline">obok</span>
-              <span className="lg:hidden">poniżej</span> jest zawężona do pasujących ({new Set(state.outcomes.flatMap((o) => o.pathIds)).size}).
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm bg-gold-soft px-3 py-2 text-sm font-semibold">
+              Pasujące instrukcje ({new Set(state.outcomes.flatMap((o) => o.pathIds)).size}) są teraz na początku listy powyżej.
+              <a href="#lista-instrukcji" className="underline">
+                Pokaż listę ↑
+              </a>
             </p>
             <p className="mt-2 text-sm text-muted">
               To orientacja na podstawie kilku odpowiedzi, a nie ocena prawna. Ostateczny wybór zależy od szczegółów Twojej sprawy i dokumentów.
